@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kulhad Manager</string>
+    <string name="app_subtitle">Manufacturing Management</string>
+
+    <!-- Auth -->
+    <string name="login_title">Login to your account</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login_button">Login to account</string>
+    <string name="login_error_invalid">Invalid email or password</string>
+
+    <!-- Tabs / sections -->
+    <string name="tab_dashboard">Dashboard</string>
+    <string name="tab_workers">Workers</string>
+    <string name="tab_production">Production</string>
+    <string name="tab_sales">Sales</string>
+    <string name="tab_stock">Stock</string>
+
+    <!-- Empty states -->
+    <string name="empty_workers">No workers added yet</string>
+    <string name="empty_production">No production entries yet</string>
+    <string name="empty_sales">No sales recorded yet</string>
+    <string name="empty_payments">No pending payments</string>
+    <string name="empty_stock">No stock movements yet</string>
+    <string name="empty_expenses">No expenses recorded yet</string>
+
+    <!-- Errors -->
+    <string name="error_generic">Something went wrong</string>
+    <string name="error_required_fields">Please fill all required fields</string>
+    <string name="error_invalid_amount">Enter a valid amount</string>
+    <string name="error_no_stock">Insufficient stock</string>
+</resources>

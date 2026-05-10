@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stylized kulhad cup icon, centered -->
+    <group android:translateX="22" android:translateY="22">
+        <!-- Cup body -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M16,16 L48,16 L44,52 Q32,58 20,52 Z" />
+        <!-- Cup rim highlight -->
+        <path
+            android:fillColor="#BFDBFE"
+            android:pathData="M16,16 L48,16 L48,21 L16,21 Z" />
+        <!-- Steam dot 1 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M22,4 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+        <!-- Steam dot 2 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M32,2 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+        <!-- Steam dot 3 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M42,4 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    </group>
+</vector>

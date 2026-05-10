@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_primary">#3B82F6</color>
+    <color name="brand_primary_dark">#1D4ED8</color>
+    <color name="bg_deep">#0F172A</color>
+    <color name="bg_status_bar">#080D1A</color>
+    <color name="surface_card">#1E293B</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
