@@ -3,11 +3,13 @@ package com.kulhad.manager.ui.screens.reports
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,11 +35,14 @@ import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.Money
 import com.kulhad.manager.ui.charts.MultiSegmentDonut
 import com.kulhad.manager.ui.charts.SimpleLineChart
+import com.kulhad.manager.ui.components.KpiStrip
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
-import com.kulhad.manager.ui.components.StatCard
+import com.kulhad.manager.ui.components.WorkerAvatar
+import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
+import com.kulhad.manager.ui.theme.OverlayWhite07
 import com.kulhad.manager.ui.theme.PrimaryBlue
 import com.kulhad.manager.ui.theme.Success
 import com.kulhad.manager.ui.theme.SurfaceCard
@@ -54,6 +59,16 @@ fun SalesReportScreen(
     val report by viewModel.sales.collectAsStateWithLifecycle()
 
     LaunchedEffect(month) { viewModel.loadSales() }
+
+    val useDemo = UiDemoData.SHOW_DEMO && report == null
+
+    val dispRevenue   = if (useDemo) UiDemoData.salesWeekTotal         else (report?.totalSales?.toLong() ?: 0L)
+    val dispCollected = if (useDemo) UiDemoData.salesCollected         else (report?.collected?.toLong() ?: 0L)
+    val dispPending   = if (useDemo) UiDemoData.salesPending           else (report?.pending?.toLong() ?: 0L)
+    val dispOrders    = if (useDemo) UiDemoData.salesOrderCount        else (report?.orderCount ?: 0)
+    val dispAvg       = if (useDemo) 6_316L                            else (report?.avgOrderValue?.toLong() ?: 0L)
+    val dispDaily     = if (useDemo) UiDemoData.salesReportDaily else report?.daily.orEmpty().map { (_, v) -> v.toFloat() }
+    val dispCustomers = if (useDemo) UiDemoData.topCustomers     else null
 
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
@@ -83,51 +98,31 @@ fun SalesReportScreen(
         )
 
         LazyColumn(
-            contentPadding = PaddingValues(14.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // KPI strip
+            // KPI strip — 3-col primary metrics
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatCard(
-                        value = Money.formatRupees(report?.totalSales ?: 0),
-                        label = "Revenue",
-                        valueColor = Success,
-                        modifier = Modifier.weight(1f)
+                KpiStrip(
+                    items = listOf(
+                        Triple(Money.formatRupees(dispRevenue),   "Revenue",   Success),
+                        Triple(Money.formatRupees(dispCollected), "Collected", PrimaryBlue),
+                        Triple(Money.formatRupees(dispPending),   "Pending",   ErrorRed)
                     )
-                    StatCard(
-                        value = Money.formatRupees(report?.collected ?: 0),
-                        label = "Collected",
-                        valueColor = PrimaryBlue,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        value = Money.formatRupees(report?.pending ?: 0),
-                        label = "Pending",
-                        valueColor = ErrorRed,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                )
             }
 
+            // KPI strip — 2-col secondary metrics
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatCard(
-                        value = "${report?.orderCount ?: 0}",
-                        label = "Orders",
-                        valueColor = WarningAmber,
-                        modifier = Modifier.weight(1f)
+                KpiStrip(
+                    items = listOf(
+                        Triple(dispOrders.toString(),           "Orders",    WarningAmber),
+                        Triple(Money.formatRupees(dispAvg),    "Avg order", TextPrimary)
                     )
-                    StatCard(
-                        value = Money.formatRupees(report?.avgOrderValue ?: 0),
-                        label = "Avg order",
-                        valueColor = TextPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                )
             }
 
-            // Daily line chart
+            // Daily revenue line chart
             item { SectionHeader(text = "Daily revenue") }
             item {
                 Column(
@@ -137,39 +132,33 @@ fun SalesReportScreen(
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
-                    val daily = report?.daily.orEmpty()
-                    if (daily.isEmpty()) {
+                    Text("DAILY REVENUE", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                    androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
+                    if (dispDaily.isEmpty()) {
                         Text("No sales data this month", color = TextSecondary, fontSize = 11.sp)
                     } else {
-                        val values = daily.map { (_, amt) -> amt.toFloat() }
                         SimpleLineChart(
-                            values = values,
+                            values = dispDaily,
                             lineColor = Success,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 4.dp)
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            // show first and last label only to avoid overlap
-                            val first = daily.firstOrNull()?.first
-                            val last = daily.lastOrNull()?.first
-                            if (first != null) Text(
-                                text = DateUtils.formatDayShort(first),
-                                color = TextSecondary, fontSize = 9.sp
-                            )
-                            if (last != null && last != first) Text(
-                                text = DateUtils.formatDayShort(last),
-                                color = TextSecondary, fontSize = 9.sp
-                            )
+                        if (!useDemo) {
+                            val daily = report?.daily.orEmpty()
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                val first = daily.firstOrNull()?.first
+                                val last = daily.lastOrNull()?.first
+                                if (first != null) Text(DateUtils.formatDayShort(first), color = TextSecondary, fontSize = 9.sp)
+                                if (last != null && last != first) Text(DateUtils.formatDayShort(last), color = TextSecondary, fontSize = 9.sp)
+                            }
                         }
                     }
                 }
             }
 
-            // Collected vs Pending donut
+            // Collection status donut
             item { SectionHeader(text = "Collection status") }
             item {
                 Row(
@@ -182,73 +171,96 @@ fun SalesReportScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             androidx.compose.foundation.Canvas(modifier = Modifier.size(8.dp)) {
                                 drawCircle(color = Success)
                             }
                             Text(
-                                text = "Collected: ${Money.formatRupees(report?.collected ?: 0)}",
-                                color = TextPrimary,
-                                fontSize = 11.sp
+                                text = "Collected: ${Money.formatRupees(dispCollected)}",
+                                color = TextPrimary, fontSize = 11.sp
                             )
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             androidx.compose.foundation.Canvas(modifier = Modifier.size(8.dp)) {
                                 drawCircle(color = ErrorRed)
                             }
                             Text(
-                                text = "Pending: ${Money.formatRupees(report?.pending ?: 0)}",
-                                color = TextPrimary,
-                                fontSize = 11.sp
+                                text = "Pending: ${Money.formatRupees(dispPending)}",
+                                color = TextPrimary, fontSize = 11.sp
                             )
                         }
                     }
                     MultiSegmentDonut(
                         segments = listOf(
-                            Success to (report?.collected ?: 0).toFloat(),
-                            ErrorRed to (report?.pending ?: 0).toFloat()
+                            Success  to dispCollected.toFloat().coerceAtLeast(0.1f),
+                            ErrorRed to dispPending.toFloat().coerceAtLeast(0.1f)
                         ),
-                        size = 72.dp,
+                        size = 64.dp,
                         strokeWidth = 10.dp
                     )
                 }
             }
 
-            // Top customers
+            // Top customers — flat rows with dividers
             item { SectionHeader(text = "Top customers") }
-            val customers = report?.topCustomers.orEmpty()
-            if (customers.isEmpty()) {
-                item {
-                    Text(
-                        text = "No customers this month",
-                        color = TextSecondary,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
+
+            if (useDemo && dispCustomers != null) {
+                items(dispCustomers) { c ->
+                    val isLast = c == dispCustomers.last()
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            WorkerAvatar(name = c.name, size = 28.dp, fontSize = 9)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(c.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                Text("${c.orders} orders", color = TextSecondary, fontSize = 10.sp)
+                            }
+                            Text(c.total, color = Success, fontSize = 12.sp, fontWeight = FontWeight.W600)
+                        }
+                        if (!isLast) {
+                            Box(Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
+                        }
+                    }
                 }
             } else {
-                items(customers, key = { it.first }) { (name, amount) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(SurfaceCard)
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                val customers = report?.topCustomers.orEmpty()
+                if (customers.isEmpty()) {
+                    item {
                         Text(
-                            text = name,
-                            color = TextPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.W500
+                            "No customers this month",
+                            color = TextSecondary, fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 4.dp)
                         )
-                        Text(
-                            text = Money.formatRupees(amount),
-                            color = Success,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.W600
-                        )
+                    }
+                } else {
+                    items(customers, key = { it.first }) { (name, amount) ->
+                        val isLast = name == customers.last().first
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                Text(Money.formatRupees(amount.toLong()), color = Success, fontSize = 12.sp, fontWeight = FontWeight.W600)
+                            }
+                            if (!isLast) {
+                                Box(Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
+                            }
+                        }
                     }
                 }
             }

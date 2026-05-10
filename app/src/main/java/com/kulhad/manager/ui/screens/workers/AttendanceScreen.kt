@@ -2,11 +2,13 @@ package com.kulhad.manager.ui.screens.workers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,13 +33,17 @@ import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.ui.charts.SimpleLineChart
 import com.kulhad.manager.ui.components.BadgeType
+import com.kulhad.manager.ui.components.KpiStrip
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadButtonStyle
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.StatusBadge
 import com.kulhad.manager.ui.components.WorkerAvatar
+import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
+import com.kulhad.manager.ui.theme.InfoBlue
+import com.kulhad.manager.ui.theme.OverlayWhite07
 import com.kulhad.manager.ui.theme.Success
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextPrimary
@@ -68,6 +74,14 @@ fun AttendanceScreen(
     val total = workers.size
     val rate = if (total == 0) 0 else (present * 100) / total
 
+    // Demo data: use when workers list is empty
+    val useDemo = UiDemoData.SHOW_DEMO && workers.isEmpty()
+    val dispPresent = if (useDemo) UiDemoData.workerPresent else present
+    val dispAbsent  = if (useDemo) UiDemoData.workerAbsent  else absent
+    val dispRate    = if (useDemo) 86 else rate
+    val dispTrend   = if (useDemo) listOf(22f, 25f, 24f, 26f, 23f, 24f, 24f)
+                      else trend.map { it.second.toFloat() }
+
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
             title = "Attendance",
@@ -75,9 +89,10 @@ fun AttendanceScreen(
             onBack = onBack
         )
         LazyColumn(
-            contentPadding = PaddingValues(14.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Trend chart
             item {
                 Column(
                     modifier = Modifier
@@ -87,72 +102,110 @@ fun AttendanceScreen(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("ATTENDANCE TREND • LAST 7 DAYS", color = TextSecondary, fontSize = 9.sp, letterSpacing = 0.5.sp)
+                    Text(
+                        "ATTENDANCE TREND • LAST 7 DAYS",
+                        color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp
+                    )
                     SimpleLineChart(
-                        values = trend.map { it.second.toFloat() },
+                        values = dispTrend.ifEmpty { listOf(0f) },
                         chartHeight = 60.dp,
                         lineColor = Success
                     )
                 }
             }
+
+            // KPI strip
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatPill("$present present", Success, Modifier.weight(1f))
-                    StatPill("$absent absent", ErrorRed, Modifier.weight(1f))
-                    StatPill("$rate% rate", WarningAmber, Modifier.weight(1f))
-                }
-            }
-            items(workers, key = { it.id }) { w ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SurfaceCard)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Checkbox(
-                        checked = checked[w.id] ?: false,
-                        onCheckedChange = { checked[w.id] = it },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = Success,
-                            uncheckedColor = TextSecondary,
-                            checkmarkColor = TextPrimary
-                        )
+                KpiStrip(
+                    items = listOf(
+                        Triple(dispPresent.toString(), "Present", Success),
+                        Triple(dispAbsent.toString(),  "Absent",  ErrorRed),
+                        Triple("$dispRate%",           "Rate",    InfoBlue)
                     )
-                    WorkerAvatar(name = w.name, size = 28.dp, fontSize = 9)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = w.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
-                        val typeLabel = if (w.currentType == WorkerType.PIECE) "Piece" else "Salary"
-                        Text(text = typeLabel, color = TextSecondary, fontSize = 10.sp)
-                    }
-                    val isP = checked[w.id] == true
-                    StatusBadge(if (isP) "Present" else "Absent", if (isP) BadgeType.SUCCESS else BadgeType.ERROR)
-                }
-            }
-            item {
-                KulhadButton(
-                    text = "Save Attendance",
-                    style = KulhadButtonStyle.SUCCESS,
-                    onClick = {
-                        viewModel.saveAttendance(checked.toMap()) { onBack() }
-                    }
                 )
             }
-        }
-    }
-}
 
-@Composable
-private fun StatPill(text: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
-    androidx.compose.foundation.layout.Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(SurfaceCard)
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = text, color = color, fontSize = 11.sp, fontWeight = FontWeight.W500)
+            // Attendance rows
+            if (useDemo) {
+                // Demo rows — show greyed-out interactive style
+                items(UiDemoData.workers) { w ->
+                    val demoChecked = remember { androidx.compose.runtime.mutableStateOf(w.isPresent) }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = demoChecked.value,
+                                onCheckedChange = { demoChecked.value = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = Success,
+                                    uncheckedColor = TextSecondary,
+                                    checkmarkColor = TextPrimary
+                                )
+                            )
+                            WorkerAvatar(name = w.name, size = 28.dp, fontSize = 9)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(w.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                Text(w.type, color = TextSecondary, fontSize = 10.sp)
+                            }
+                            val isP = demoChecked.value
+                            StatusBadge(if (isP) "Present" else "Absent", if (isP) BadgeType.SUCCESS else BadgeType.ERROR)
+                        }
+                        if (w != UiDemoData.workers.last()) {
+                            Box(Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
+                        }
+                    }
+                }
+            } else {
+                items(workers, key = { it.id }) { w ->
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = checked[w.id] ?: false,
+                                onCheckedChange = { checked[w.id] = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = Success,
+                                    uncheckedColor = TextSecondary,
+                                    checkmarkColor = TextPrimary
+                                )
+                            )
+                            WorkerAvatar(name = w.name, size = 28.dp, fontSize = 9)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(w.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                val typeLabel = if (w.currentType == WorkerType.PIECE) "Piece" else "Salary"
+                                Text(typeLabel, color = TextSecondary, fontSize = 10.sp)
+                            }
+                            val isP = checked[w.id] == true
+                            StatusBadge(if (isP) "Present" else "Absent", if (isP) BadgeType.SUCCESS else BadgeType.ERROR)
+                        }
+                        if (w != workers.last()) {
+                            Box(Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
+                        }
+                    }
+                }
+            }
+
+            if (!useDemo) {
+                item {
+                    KulhadButton(
+                        text = "Save Attendance",
+                        style = KulhadButtonStyle.SUCCESS,
+                        onClick = {
+                            viewModel.saveAttendance(checked.toMap()) { onBack() }
+                        }
+                    )
+                }
+            }
+        }
     }
 }
