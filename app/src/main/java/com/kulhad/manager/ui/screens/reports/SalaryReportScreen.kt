@@ -66,9 +66,9 @@ fun SalaryReportScreen(
     val dispPayout   = if (useDemo) UiDemoData.salaryTotalPayout   else (report?.totalPayout?.toLong() ?: 0L)
     val dispAdvances = if (useDemo) UiDemoData.salaryTotalAdvances  else (report?.totalAdvances?.toLong() ?: 0L)
 
-    val demoTopEarners = UiDemoData.salaryRows.map { it.name to it.amount.replace("₹","").replace(",","").toFloatOrNull() ?: 0f }
-    val realTopEarners = report?.rows.orEmpty().filter { it.grossEarnings > 0 }.take(5).map { it.workerName to it.grossEarnings.toFloat() }
-    val topEarners = if (useDemo) demoTopEarners else realTopEarners
+    val demoTopEarners: List<Pair<String, Float>> = UiDemoData.salaryRows.map { it.name to (it.amount.replace("₹","").replace(",","").toFloatOrNull() ?: 0f) }
+    val realTopEarners: List<Pair<String, Float>> = report?.rows.orEmpty().filter { it.grossEarnings > 0 }.take(5).map { it.workerName to it.grossEarnings.toFloat() }
+    val topEarners: List<Pair<String, Float>> = if (useDemo) demoTopEarners else realTopEarners
 
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
