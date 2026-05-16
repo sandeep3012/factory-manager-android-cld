@@ -16,52 +16,52 @@ val KulhadTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W500,
-        fontSize = 20.sp,
-        letterSpacing = (-0.4).sp
+        fontSize = 24.sp,
+        letterSpacing = (-0.48).sp
     ),
     titleLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W500,
-        fontSize = 15.sp,
-        letterSpacing = (-0.15).sp
+        fontSize = 18.sp,
+        letterSpacing = (-0.18).sp
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W500,
-        fontSize = 14.sp,
-        letterSpacing = (-0.1).sp
+        fontSize = 17.sp,
+        letterSpacing = (-0.12).sp
     ),
     bodyLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W400,
-        fontSize = 13.sp
+        fontSize = 16.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W400,
-        fontSize = 12.sp
+        fontSize = 14.sp
     ),
     bodySmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W400,
-        fontSize = 11.sp
+        fontSize = 13.sp
     ),
     labelLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W500,
-        fontSize = 11.sp,
-        letterSpacing = 0.5.sp
+        fontSize = 13.sp,
+        letterSpacing = 0.6.sp
     ),
     labelMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W500,
-        fontSize = 10.sp,
-        letterSpacing = 0.4.sp
+        fontSize = 12.sp,
+        letterSpacing = 0.48.sp
     ),
     labelSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.W500,
-        fontSize = 9.sp,
-        letterSpacing = 0.3.sp
+        fontSize = 11.sp,
+        letterSpacing = 0.36.sp
     )
 )

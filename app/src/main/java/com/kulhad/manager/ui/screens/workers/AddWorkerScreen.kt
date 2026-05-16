@@ -91,17 +91,17 @@ fun AddWorkerScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(SurfaceCard)
                         .clickable { /* date picker dialog could be added later */ }
                         .padding(12.dp)
                 ) {
                     Column {
-                        Text(text = "JOINING DATE", color = TextSecondary, fontSize = 8.sp)
+                        Text(text = "JOINING DATE", color = TextSecondary, fontSize = 10.sp)
                         Text(
                             text = DateUtils.formatDay(joining),
                             color = androidx.compose.ui.graphics.Color.White,
-                            fontSize = 14.sp,
+                            fontSize = 17.sp,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }

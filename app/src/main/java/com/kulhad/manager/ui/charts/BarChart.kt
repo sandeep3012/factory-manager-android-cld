@@ -31,7 +31,7 @@ fun SimpleBarChart(
     labels: List<String> = emptyList(),
     modifier: Modifier = Modifier,
     barColor: Color = PrimaryBlue,
-    chartHeight: Dp = 60.dp,
+    chartHeight: Dp = 72.dp,
     perBarColor: ((Int, Float) -> Color)? = null,
     showLabels: Boolean = true
 ) {
@@ -74,7 +74,7 @@ fun SimpleBarChart(
                     Text(
                         text = label,
                         color = TextTertiary,
-                        fontSize = 9.sp,
+                        fontSize = 11.sp,
                         modifier = Modifier.weight(1f),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
@@ -90,7 +90,7 @@ fun HorizontalBarChart(
     items: List<Pair<String, Float>>,
     modifier: Modifier = Modifier,
     barColor: Color = PrimaryBlue,
-    rowHeight: Dp = 16.dp
+    rowHeight: Dp = 19.dp
 ) {
     val maxV = (items.maxOfOrNull { it.second } ?: 0f).coerceAtLeast(1f)
     Column(
@@ -103,7 +103,7 @@ fun HorizontalBarChart(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = label, color = TextTertiary, fontSize = 10.sp)
+                    Text(text = label, color = TextTertiary, fontSize = 12.sp)
                     Text(text = v.toInt().toString(), color = TextTertiary, fontSize = 10.sp)
                 }
                 Box(
@@ -132,7 +132,7 @@ fun ProgressBar(
     progress: Float,
     color: Color,
     modifier: Modifier = Modifier,
-    height: Dp = 5.dp
+    height: Dp = 6.dp
 ) {
     Box(
         modifier = modifier

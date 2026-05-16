@@ -3,6 +3,7 @@ package com.kulhad.manager.ui.screens.reports
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -33,7 +34,9 @@ import com.kulhad.manager.data.util.Money
 import com.kulhad.manager.ui.charts.DonutChart
 import com.kulhad.manager.ui.charts.SimpleLineChart
 import com.kulhad.manager.ui.components.KulhadTopBar
+import com.kulhad.manager.ui.components.ReportRow
 import com.kulhad.manager.ui.components.SectionHeader
+import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
 import com.kulhad.manager.ui.theme.Success
@@ -51,6 +54,22 @@ fun ProfitLossReportScreen(
     val report by viewModel.profitLoss.collectAsStateWithLifecycle()
 
     LaunchedEffect(month) { viewModel.loadProfitLoss() }
+
+    val useDemo = UiDemoData.SHOW_DEMO && report == null
+
+    val net       = if (useDemo) UiDemoData.plNetProfit          else (report?.netProfit?.toLong() ?: 0L)
+    val revenue   = if (useDemo) UiDemoData.plRevenue            else (report?.totalSales?.toLong() ?: 0L)
+    val costs     = if (useDemo) UiDemoData.plLaborCost + UiDemoData.plOtherCosts else (report?.totalExpenses?.toLong() ?: 0L)
+    val labor     = if (useDemo) UiDemoData.plLaborCost          else (report?.laborCost?.toLong() ?: 0L)
+    val pctChange = if (useDemo) UiDemoData.plPercentChange      else (report?.percentChange ?: 0.0)
+    val trend     = if (useDemo) UiDemoData.plMonthlyTrend       else report?.monthlyTrend?.map { it.second.toFloat() }.orEmpty()
+    val trendLbls = if (useDemo) UiDemoData.plTrendLabels        else report?.monthlyTrend?.map { it.first }.orEmpty()
+    val expenseByType: List<Pair<String, Long>> =
+        if (useDemo) listOf("Soil" to 18_000L, "Transport" to 7_000L)
+        else report?.expenseByType.orEmpty().map { (k, v) -> k to v.toLong() }
+
+    val isProfit  = net >= 0
+    val netColor  = if (isProfit) Success else ErrorRed
 
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
@@ -80,20 +99,15 @@ fun ProfitLossReportScreen(
         )
 
         LazyColumn(
-            contentPadding = PaddingValues(14.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Hero card: net profit + donut
+            // Hero card: net profit + donut (HTML screen 8 style)
             item {
-                val net = report?.netProfit ?: 0
-                val totalSales = report?.totalSales ?: 0
-                val totalCosts = report?.totalExpenses ?: 0
-                val isProfit = net >= 0
-                val netColor = if (isProfit) Success else ErrorRed
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(17.dp))
                         .background(SurfaceCard)
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -101,35 +115,38 @@ fun ProfitLossReportScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = if (isProfit) "Net Profit" else "Net Loss",
-                            color = TextSecondary,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.5.sp
+                            text = "NET ${if (isProfit) "PROFIT" else "LOSS"} — THIS MONTH",
+                            color = TextSecondary, fontSize = 14.sp, letterSpacing = 0.6.sp
                         )
                         Text(
                             text = Money.formatRupees(net),
-                            color = netColor,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.Bold
+                            color = netColor, fontSize = 31.sp, fontWeight = FontWeight.Bold
                         )
-                        val pct = report?.percentChange ?: 0.0
-                        val arrow = if (pct >= 0) "▲" else "▼"
-                        val pctColor = if (pct >= 0) Success else ErrorRed
-                        if (report != null) {
-                            Text(
-                                text = "$arrow ${"%.1f".format(kotlin.math.abs(pct))}% vs last month",
-                                color = pctColor,
-                                fontSize = 10.sp
-                            )
+                        val arrow = if (pctChange >= 0) "▲" else "▼"
+                        val pctColor = if (pctChange >= 0) Success else ErrorRed
+                        Text(
+                            text = "$arrow ${"%.1f".format(kotlin.math.abs(pctChange))}% vs last month",
+                            color = pctColor, fontSize = 14.sp
+                        )
+                        androidx.compose.foundation.layout.Spacer(Modifier.size(4.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Column {
+                                Text("Revenue", color = TextSecondary, fontSize = 14.sp)
+                                Text(Money.formatRupees(revenue), color = Success, fontSize = 13.sp, fontWeight = FontWeight.W600)
+                            }
+                            Column {
+                                Text("Costs", color = TextSecondary, fontSize = 14.sp)
+                                Text(Money.formatRupees(costs), color = ErrorRed, fontSize = 13.sp, fontWeight = FontWeight.W600)
+                            }
                         }
                     }
                     DonutChart(
-                        primaryValue = totalSales.toFloat().coerceAtLeast(0f),
-                        secondaryValue = totalCosts.toFloat().coerceAtLeast(0f),
+                        primaryValue = revenue.toFloat().coerceAtLeast(0.1f),
+                        secondaryValue = costs.toFloat().coerceAtLeast(0.1f),
                         primaryColor = Success,
                         secondaryColor = ErrorRed,
-                        size = 72.dp,
-                        strokeWidth = 10.dp
+                        size = 86.dp,
+                        strokeWidth = 12.dp
                     )
                 }
             }
@@ -140,28 +157,25 @@ fun ProfitLossReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
-                    val trend = report?.monthlyTrend.orEmpty()
+                    Text("NET PROFIT — LAST 4 MONTHS", color = TextSecondary, fontSize = 14.sp, letterSpacing = 0.5.sp)
+                    androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
                     if (trend.isEmpty()) {
-                        Text("No trend data yet", color = TextSecondary, fontSize = 11.sp)
+                        Text("No trend data yet", color = TextSecondary, fontSize = 13.sp)
                     } else {
-                        val values = trend.map { (_, profit) -> profit.toFloat() }
-                        val labels = trend.map { (label, _) -> label }
                         SimpleLineChart(
-                            values = values,
+                            values = trend,
                             lineColor = Success,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 4.dp)
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            labels.forEach { lbl ->
+                            trendLbls.forEach { lbl ->
                                 Text(text = lbl, color = TextSecondary, fontSize = 9.sp)
                             }
                         }
@@ -169,72 +183,46 @@ fun ProfitLossReportScreen(
                 }
             }
 
-            // Breakdown list
+            // Breakdown list — finance rows (HTML screen 8)
             item { SectionHeader(text = "Breakdown") }
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 12.dp)
                 ) {
-                    BreakdownRow(
+                    ReportRow(
                         label = "Total sales",
-                        value = Money.formatRupees(report?.totalSales ?: 0),
-                        valueColor = Success
+                        value = Money.formatRupees(revenue),
+                        valueColor = Success,
+                        showDivider = true
                     )
-                    BreakdownRow(
+                    ReportRow(
                         label = "Labor cost",
-                        value = "−${Money.formatRupees(report?.laborCost ?: 0)}",
-                        valueColor = ErrorRed
+                        value = "−${Money.formatRupees(labor)}",
+                        valueColor = ErrorRed,
+                        showDivider = expenseByType.isNotEmpty()
                     )
-                    report?.expenseByType.orEmpty().forEach { (typeName, amt) ->
-                        BreakdownRow(
-                            label = typeName,
+                    expenseByType.forEachIndexed { idx, (name, amt) ->
+                        ReportRow(
+                            label = name,
                             value = "−${Money.formatRupees(amt)}",
-                            valueColor = WarningAmber
+                            valueColor = WarningAmber,
+                            showDivider = idx < expenseByType.lastIndex
                         )
                     }
-                    // Divider
-                    androidx.compose.foundation.layout.Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp)
+                    // Bold net row
+                    ReportRow(
+                        label = if (isProfit) "Net profit" else "Net loss",
+                        value = Money.formatRupees(net),
+                        valueColor = netColor,
+                        bold = true,
+                        showDivider = false
                     )
-                    val net = report?.netProfit ?: 0
-                    val netColor = if (net >= 0) Success else ErrorRed
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = if (net >= 0) "Net profit" else "Net loss",
-                            color = netColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = Money.formatRupees(net),
-                            color = netColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun BreakdownRow(label: String, value: String, valueColor: androidx.compose.ui.graphics.Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, color = TextSecondary, fontSize = 12.sp)
-        Text(text = value, color = valueColor, fontSize = 12.sp, fontWeight = FontWeight.W500)
     }
 }

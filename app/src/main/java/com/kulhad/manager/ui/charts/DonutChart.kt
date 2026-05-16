@@ -21,10 +21,10 @@ fun DonutChart(
     primaryValue: Float,
     secondaryValue: Float,
     modifier: Modifier = Modifier,
-    size: Dp = 64.dp,
+    size: Dp = 77.dp,
     primaryColor: Color = Color(0xFF34D399),
     secondaryColor: Color = Color(0xFFF87171),
-    strokeWidth: Dp = 8.dp,
+    strokeWidth: Dp = 10.dp,
     cutout: Float = 0.7f
 ) {
     Canvas(modifier = modifier.size(size)) {
@@ -75,8 +75,8 @@ fun DonutChart(
 fun MultiSegmentDonut(
     segments: List<Pair<Color, Float>>,
     modifier: Modifier = Modifier,
-    size: Dp = 64.dp,
-    strokeWidth: Dp = 8.dp
+    size: Dp = 77.dp,
+    strokeWidth: Dp = 10.dp
 ) {
     Canvas(modifier = modifier.size(size)) {
         val total = segments.sumOf { it.second.toDouble() }.toFloat()

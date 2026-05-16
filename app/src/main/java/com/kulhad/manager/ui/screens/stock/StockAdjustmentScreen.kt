@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,9 +27,13 @@ import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
+import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.components.SegmentedControl
 import com.kulhad.manager.ui.components.SizePillGrid
 import com.kulhad.manager.ui.theme.BgDeep
+import com.kulhad.manager.ui.theme.InfoBlue
+import com.kulhad.manager.ui.theme.SurfaceCard
+import com.kulhad.manager.ui.theme.TextPrimary
 import com.kulhad.manager.ui.theme.TextSecondary
 
 @Composable
@@ -50,7 +56,7 @@ fun StockAdjustmentScreen(
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(title = "Stock Adjustment", onBack = onBack)
         LazyColumn(
-            contentPadding = PaddingValues(14.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
@@ -60,9 +66,7 @@ fun StockAdjustmentScreen(
                     onSelect = { typeStr = it }
                 )
             }
-            item {
-                Text("PRODUCT SIZE", color = TextSecondary, fontSize = 9.sp, letterSpacing = 0.5.sp)
-            }
+            item { SectionHeader(text = "Product size") }
             item {
                 SizePillGrid(
                     sizes = products.map { it.sizeMl },
@@ -72,7 +76,17 @@ fun StockAdjustmentScreen(
             }
             if (sizeMl != null) {
                 item {
-                    Text(text = "Current stock: $currentStock", color = TextSecondary, fontSize = 11.sp)
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(SurfaceCard)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Current stock", color = TextSecondary, fontSize = 12.sp)
+                        Text("$currentStock pcs", color = InfoBlue, fontSize = 13.sp)
+                    }
                 }
             }
             item {
@@ -84,7 +98,6 @@ fun StockAdjustmentScreen(
                     label = "Quantity",
                     value = qty,
                     onValueChange = {
-                        // allow leading minus only for ADJUSTMENT
                         val filtered = if (type == StockChangeType.ADJUSTMENT) {
                             it.filterIndexed { idx, c -> c.isDigit() || (idx == 0 && c == '-') }
                         } else {
@@ -106,7 +119,7 @@ fun StockAdjustmentScreen(
             item {
                 Text(
                     text = "Date: ${DateUtils.formatDay(System.currentTimeMillis())}",
-                    color = TextSecondary, fontSize = 10.sp
+                    color = TextSecondary, fontSize = 12.sp
                 )
             }
             item {

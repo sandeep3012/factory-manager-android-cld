@@ -44,16 +44,16 @@ fun SizePillGrid(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(if (isSelected) PrimaryBlueDark else SurfaceCard)
                             .clickable { onSelect(size) }
-                            .padding(vertical = 10.dp),
+                            .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "${size}ml",
                             color = if (isSelected) PrimaryBlueLight else TextTertiary,
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.W600 else FontWeight.W500
                         )
                     }

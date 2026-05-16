@@ -39,12 +39,12 @@ fun StatusBadge(
     Text(
         text = text.uppercase(),
         color = fg,
-        fontSize = 9.sp,
+        fontSize = 11.sp,
         fontWeight = FontWeight.W500,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.6.sp,
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(bg)
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }

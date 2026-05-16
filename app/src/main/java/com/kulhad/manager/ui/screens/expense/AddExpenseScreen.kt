@@ -58,7 +58,7 @@ fun AddExpenseScreen(
             contentPadding = PaddingValues(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            item { Text("EXPENSE TYPE", color = TextSecondary, fontSize = 9.sp, letterSpacing = 0.5.sp) }
+            item { Text("EXPENSE TYPE", color = TextSecondary, fontSize = 13.sp, letterSpacing = 0.5.sp) }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     types.chunked(3).forEach { row ->
@@ -71,11 +71,11 @@ fun AddExpenseScreen(
                                 Text(
                                     text = t.name,
                                     color = if (sel) PrimaryBlueLight else TextPrimary,
-                                    fontSize = 11.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = if (sel) FontWeight.W600 else FontWeight.W500,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(if (sel) PrimaryBlueDark else SurfaceCard)
                                         .clickable { selectedTypeId = t.id }
                                         .padding(vertical = 10.dp, horizontal = 10.dp),
@@ -115,10 +115,10 @@ fun AddExpenseScreen(
                         Text(
                             text = "+ New type",
                             color = TextTertiary,
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .border(0.5.dp, OverlayWhite15, RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(10.dp))
+                                .border(0.5.dp, OverlayWhite15, RoundedCornerShape(10.dp))
                                 .clickable { addingType = true }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         )
@@ -141,7 +141,7 @@ fun AddExpenseScreen(
                 )
             }
             item {
-                Text(text = "Date: ${DateUtils.formatDay(date)}", color = TextSecondary, fontSize = 10.sp)
+                Text(text = "Date: ${DateUtils.formatDay(date)}", color = TextSecondary, fontSize = 12.sp)
             }
             item {
                 KulhadButton(

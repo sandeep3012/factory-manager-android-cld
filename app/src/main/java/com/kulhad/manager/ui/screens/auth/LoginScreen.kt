@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Factory
@@ -33,11 +32,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
+import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.BgLogin
 import com.kulhad.manager.ui.theme.ErrorRed
+import com.kulhad.manager.ui.theme.OverlayWhite15
+import com.kulhad.manager.ui.theme.PrimaryBlue
 import com.kulhad.manager.ui.theme.PrimaryBlueDark
 import com.kulhad.manager.ui.theme.TextPrimary
 import com.kulhad.manager.ui.theme.TextSecondary
+import com.kulhad.manager.ui.theme.TextTertiary
 
 @Composable
 fun LoginScreen(
@@ -50,68 +53,81 @@ fun LoginScreen(
 
     if (state is AuthUiState.Success) onLoggedIn()
 
+    // Full-screen dark splash background (matches HTML screen 1)
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgLogin)
-            .padding(horizontal = 24.dp),
+            .background(BgLogin),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
+            // Logo — outer ring + inner square (HTML: logo-ring → logo-inner)
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(19.dp))
                     .background(PrimaryBlueDark),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Factory,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(41.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(PrimaryBlue),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Factory,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
+
+            Spacer(Modifier.height(20.dp))
+
             Text(
                 text = "Kulhad Manager",
                 color = TextPrimary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.W500
+                fontSize = 22.sp,
+                fontWeight = FontWeight.W500,
+                letterSpacing = 0.24.sp
             )
+            Spacer(Modifier.height(5.dp))
             Text(
-                text = "Manufacturing Management",
+                text = "Aapka smart factory manager",
                 color = TextSecondary,
-                fontSize = 11.sp
+                fontSize = 13.sp
             )
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(Modifier.height(32.dp))
 
             KulhadTextField(
                 label = "Email",
                 value = email,
-                onValueChange = {
-                    email = it
-                    viewModel.resetError()
-                },
+                onValueChange = { email = it; viewModel.resetError() },
                 placeholder = "owner@kulhad.com",
                 keyboardType = KeyboardType.Email
             )
+            Spacer(Modifier.height(10.dp))
             KulhadTextField(
                 label = "Password",
                 value = password,
-                onValueChange = {
-                    password = it
-                    viewModel.resetError()
-                },
+                onValueChange = { password = it; viewModel.resetError() },
                 placeholder = "Enter your password",
                 isPassword = true,
                 keyboardType = KeyboardType.Password
             )
 
             if (state is AuthUiState.Error) {
+                Spacer(Modifier.height(8.dp))
                 Text(
                     text = (state as AuthUiState.Error).message,
                     color = ErrorRed,
@@ -120,19 +136,20 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(20.dp))
 
             KulhadButton(
-                text = if (state is AuthUiState.Loading) "Signing in…" else "Login to account",
+                text = if (state is AuthUiState.Loading) "Signing in…" else "Login / प्रवेश करें",
                 enabled = state !is AuthUiState.Loading,
-               // onClick = { viewModel.login(email.trim().lowercase(), password) },
-                onClick = { viewModel.login("owner@kulhad.com", "kulhad123") },
-                modifier = Modifier.fillMaxWidth()
+                onClick = { viewModel.login("owner@kulhad.com", "kulhad123") }
             )
+
+            Spacer(Modifier.height(12.dp))
+
             Text(
                 text = "Demo: owner@kulhad.com / kulhad123",
-                color = TextSecondary,
-                fontSize = 10.sp
+                color = TextTertiary,
+                fontSize = 9.sp
             )
         }
     }

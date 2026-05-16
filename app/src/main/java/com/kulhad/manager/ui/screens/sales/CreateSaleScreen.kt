@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -30,11 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kulhad.manager.ui.components.bottomSheetContentInsets
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.Money
@@ -83,7 +87,7 @@ fun CreateSaleScreen(
                 Text(
                     text = "Date: ${DateUtils.formatDay(date)}",
                     color = TextSecondary,
-                    fontSize = 10.sp
+                    fontSize = 17.sp
                 )
             }
             item { SectionHeader(text = "Items") }
@@ -91,7 +95,7 @@ fun CreateSaleScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(SurfaceCard)
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -101,19 +105,19 @@ fun CreateSaleScreen(
                         Text(
                             text = "${d.productSize}ml",
                             color = TextPrimary,
-                            fontSize = 12.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.W500
                         )
                         Text(
                             text = "${d.quantity} × ${Money.formatRupees(d.pricePerUnit)}",
                             color = TextSecondary,
-                            fontSize = 10.sp
+                            fontSize = 17.sp
                         )
                     }
                     Text(
                         text = Money.formatRupees(d.total),
                         color = Success,
-                        fontSize = 12.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.W500
                     )
                     IconButton(onClick = { items.remove(d) }) {
@@ -125,7 +129,7 @@ fun CreateSaleScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(SurfaceCard)
                         .clickable { showSheet = true }
                         .padding(12.dp),
@@ -133,7 +137,7 @@ fun CreateSaleScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Outlined.AddCircle, contentDescription = null, tint = PrimaryBlue)
-                    Text(text = "Add item", color = PrimaryBlue, fontSize = 12.sp)
+                    Text(text = "Add item", color = PrimaryBlue, fontSize = 17.sp)
                 }
             }
             item {
@@ -141,11 +145,11 @@ fun CreateSaleScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "TOTAL", color = TextSecondary, fontSize = 9.sp, letterSpacing = 0.5.sp)
+                    Text(text = "TOTAL", color = TextSecondary, fontSize = 13.sp, letterSpacing = 0.5.sp)
                     Text(
                         text = Money.formatRupees(total),
                         color = Success,
-                        fontSize = 22.sp,
+                        fontSize = 26.sp,
                         fontWeight = FontWeight.W600
                     )
                 }
@@ -168,7 +172,8 @@ fun CreateSaleScreen(
         ModalBottomSheet(
             onDismissRequest = { showSheet = false },
             sheetState = sheetState,
-            containerColor = SurfaceCard
+            containerColor = SurfaceCard,
+            windowInsets = WindowInsets(0) // Content handles nav-bar and IME insets
         ) {
             AddItemSheet(
                 products = products,
@@ -200,39 +205,63 @@ private fun AddItemSheet(
     val priceInt = price.toIntOrNull() ?: 0
     val total = qtyInt * priceInt
 
+    val maxScrollHeight = (LocalConfiguration.current.screenHeightDp * 0.55f).dp
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .bottomSheetContentInsets()
     ) {
-        Text(text = "Add item", color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
-        SizePillGrid(
-            sizes = products.map { it.sizeMl },
-            selected = sizeMl,
-            onSelect = { sizeMl = it }
-        )
-        if (sizeMl != null) {
-            Text(text = "Available stock: $stock", color = TextSecondary, fontSize = 11.sp)
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxScrollHeight),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item {
+                Text(text = "Add item", color = TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.W500)
+            }
+            item {
+                SizePillGrid(
+                    sizes = products.map { it.sizeMl },
+                    selected = sizeMl,
+                    onSelect = { sizeMl = it }
+                )
+            }
+            if (sizeMl != null) {
+                item {
+                    Text(text = "Available stock: $stock", color = TextSecondary, fontSize = 13.sp)
+                }
+            }
+            item {
+                KulhadTextField(
+                    label = "Quantity",
+                    value = qty,
+                    onValueChange = { qty = it.filter { ch -> ch.isDigit() } },
+                    keyboardType = KeyboardType.Number
+                )
+            }
+            item {
+                KulhadTextField(
+                    label = "Price per unit (₹)",
+                    value = price,
+                    onValueChange = { price = it.filter { ch -> ch.isDigit() } },
+                    keyboardType = KeyboardType.Number
+                )
+            }
+            item {
+                Text(
+                    text = "Item total: ${Money.formatRupees(total)}",
+                    color = Success,
+                    fontSize = 17.sp
+                )
+            }
         }
-        KulhadTextField(
-            label = "Quantity",
-            value = qty,
-            onValueChange = { qty = it.filter { ch -> ch.isDigit() } },
-            keyboardType = KeyboardType.Number
-        )
-        KulhadTextField(
-            label = "Price per unit (₹)",
-            value = price,
-            onValueChange = { price = it.filter { ch -> ch.isDigit() } },
-            keyboardType = KeyboardType.Number
-        )
-        Text(
-            text = "Item total: ${Money.formatRupees(total)}",
-            color = Success,
-            fontSize = 12.sp
-        )
         KulhadButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 16.dp),
             text = "Add to sale",
             enabled = sizeMl != null && qtyInt > 0 && priceInt > 0,
             onClick = {

@@ -49,7 +49,7 @@ fun BottomNavBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -59,26 +59,26 @@ fun BottomNavBar(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onTabSelected(tab.route) }
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 5.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
                         tint = if (isActive) TextPrimary else TextTertiary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                     Text(
                         text = tab.label,
                         color = if (isActive) TextPrimary else TextTertiary,
-                        fontSize = 9.sp
+                        fontSize = 11.sp
                     )
                     Box(
                         modifier = Modifier
-                            .width(14.dp)
-                            .height(2.dp)
-                            .clip(RoundedCornerShape(1.dp))
+                            .width(17.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp))
                             .background(if (isActive) PrimaryBlue else androidx.compose.ui.graphics.Color.Transparent)
                     )
                 }

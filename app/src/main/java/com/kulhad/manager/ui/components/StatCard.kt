@@ -27,22 +27,22 @@ fun StatCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = value,
             color = valueColor,
-            fontSize = 18.sp,
+            fontSize = 22.sp,
             fontWeight = FontWeight.W600
         )
         Text(
             text = label.uppercase(),
             color = TextSecondary,
-            fontSize = 9.sp,
-            letterSpacing = 0.5.sp
+            fontSize = 11.sp,
+            letterSpacing = 0.6.sp
         )
     }
 }
