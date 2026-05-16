@@ -28,8 +28,8 @@ fun SectionHeader(
         Text(
             text = text.uppercase(),
             color = TextSecondary,
-            fontSize = 9.sp,
-            letterSpacing = 1.sp
+            fontSize = 11.sp,
+            letterSpacing = 1.2.sp
         )
         if (trailing != null) trailing()
     }

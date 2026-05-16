@@ -45,13 +45,13 @@ fun ReportRow(
             Text(
                 text = label,
                 color = labelColor,
-                fontSize = if (bold) 12.sp else 10.sp,
+                fontSize = if (bold) 14.sp else 12.sp,
                 fontWeight = if (bold) FontWeight.W600 else FontWeight.W400
             )
             Text(
                 text = value,
                 color = valueColor,
-                fontSize = if (bold) 12.sp else 11.sp,
+                fontSize = if (bold) 14.sp else 13.sp,
                 fontWeight = if (bold) FontWeight.W600 else FontWeight.W500
             )
         }

@@ -36,23 +36,23 @@ fun KpiStrip(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(SurfaceCard)
-                    .padding(vertical = 8.dp, horizontal = 6.dp),
+                    .padding(vertical = 10.dp, horizontal = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
                     text = value,
                     color = color,
-                    fontSize = 14.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.W600
                 )
                 Text(
                     text = label,
                     color = TextSecondary,
-                    fontSize = 8.sp,
-                    letterSpacing = 0.3.sp
+                    fontSize = 10.sp,
+                    letterSpacing = 0.36.sp
                 )
             }
         }

@@ -70,15 +70,15 @@ fun LoginScreen(
             // Logo — outer ring + inner square (HTML: logo-ring → logo-inner)
             Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(19.dp))
                     .background(PrimaryBlueDark),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(41.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(PrimaryBlue),
                     contentAlignment = Alignment.Center
                 ) {
@@ -86,25 +86,25 @@ fun LoginScreen(
                         imageVector = Icons.Filled.Factory,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
             Text(
                 text = "Kulhad Manager",
                 color = TextPrimary,
-                fontSize = 18.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.W500,
-                letterSpacing = 0.2.sp
+                letterSpacing = 0.24.sp
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(5.dp))
             Text(
                 text = "Aapka smart factory manager",
                 color = TextSecondary,
-                fontSize = 11.sp
+                fontSize = 13.sp
             )
 
             Spacer(Modifier.height(32.dp))

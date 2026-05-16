@@ -79,15 +79,15 @@ fun StockLedgerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
-                    Text("STOCK LEVEL — LAST 7 MOVEMENTS", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                    Text("STOCK LEVEL — LAST 7 MOVEMENTS", color = TextSecondary, fontSize = 10.sp, letterSpacing = 0.5.sp)
                     androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
                     SimpleLineChart(
                         values = balance.map { it.second.toFloat() }.ifEmpty { listOf(current.toFloat()) },
-                        chartHeight = 60.dp,
+                        chartHeight = 72.dp,
                         lineColor = InfoBlue
                     )
                 }
@@ -117,9 +117,9 @@ fun StockLedgerScreen(
                         ) {
                             Icon(
                                 Icons.Outlined.HistoryToggleOff, contentDescription = null,
-                                tint = TextSecondary, modifier = Modifier.size(36.dp)
+                                tint = TextSecondary, modifier = Modifier.size(43.dp)
                             )
-                            Text("No stock movements yet", color = TextSecondary, fontSize = 12.sp)
+                            Text("No stock movements yet", color = TextSecondary, fontSize = 14.sp)
                         }
                     }
                 }
@@ -137,11 +137,11 @@ fun StockLedgerScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = mov.description,
-                                    color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500
+                                    color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500
                                 )
                                 Text(
                                     text = "${DateUtils.formatTime(mov.timestamp)} • by ${mov.doneByName}",
-                                    color = TextSecondary, fontSize = 9.sp
+                                    color = TextSecondary, fontSize = 11.sp
                                 )
                             }
                             when (mov.type) {
@@ -154,7 +154,7 @@ fun StockLedgerScreen(
                                 text = if (mov.quantityChange >= 0) "+${mov.quantityChange}"
                                        else mov.quantityChange.toString(),
                                 color = if (mov.quantityChange >= 0) Success else ErrorRed,
-                                fontSize = 13.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.W600
                             )
                         }

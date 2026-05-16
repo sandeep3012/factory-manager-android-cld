@@ -103,11 +103,11 @@ fun DashboardScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                Text(text = raw.greeting, color = TextSecondary, fontSize = 10.sp)
+                                Text(text = raw.greeting, color = TextSecondary, fontSize = 12.sp)
                                 Text(text = raw.userName, color = TextPrimary,
-                                    fontSize = 16.sp, fontWeight = FontWeight.W500)
+                                    fontSize = 19.sp, fontWeight = FontWeight.W500)
                             }
-                            WorkerAvatar(name = raw.userName, size = 34.dp, fontSize = 11)
+                            WorkerAvatar(name = raw.userName, size = 41.dp, fontSize = 13)
                         }
                     }
 
@@ -133,9 +133,9 @@ fun DashboardScreen(
                             extraContent = {
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Text("Revenue ${Money.formatRupees(revenue)}",
-                                        color = TextSecondary, fontSize = 9.sp)
+                                        color = TextSecondary, fontSize = 11.sp)
                                     Text("Costs ${Money.formatRupees(costs)}",
-                                        color = TextSecondary, fontSize = 9.sp)
+                                        color = TextSecondary, fontSize = 11.sp)
                                 }
                             }
                         )
@@ -160,9 +160,9 @@ fun DashboardScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(14.dp))
                                 .background(SurfaceCard)
-                                .padding(12.dp)
+                                .padding(14.dp)
                         ) {
                             SimpleBarChart(
                                 values = prod7d.map { it.toFloat() },
@@ -211,24 +211,24 @@ private fun QuickAction(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(SurfaceCard)
             .clickable { onClick() }
-            .padding(vertical = 10.dp),
+            .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(34.dp)
                 .clip(CircleShape)
                 .background(accent.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(imageVector = icon, contentDescription = null,
-                tint = accent, modifier = Modifier.size(16.dp))
+                tint = accent, modifier = Modifier.size(19.dp))
         }
-        Text(text = label, color = TextSecondary, fontSize = 9.sp)
+        Text(text = label, color = TextSecondary, fontSize = 11.sp)
     }
 }
 
@@ -241,15 +241,15 @@ private fun ShortcutTile(
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(SurfaceCard)
             .clickable { onClick() }
-            .padding(12.dp),
+            .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Icon(imageVector = icon, contentDescription = null,
-            tint = TextPrimary, modifier = Modifier.size(18.dp))
-        Text(text = label, color = TextPrimary, fontSize = 12.sp)
+            tint = TextPrimary, modifier = Modifier.size(22.dp))
+        Text(text = label, color = TextPrimary, fontSize = 14.sp)
     }
 }

@@ -74,7 +74,7 @@ fun PaymentEntryScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(SurfaceCard)
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -84,21 +84,21 @@ fun PaymentEntryScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
-                                Text("SALE TOTAL", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                                Text("SALE TOTAL", color = TextSecondary, fontSize = 12.sp, letterSpacing = 0.5.sp)
                                 Text(
                                     Money.formatRupees(d.sale.totalAmount),
-                                    color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.W600
+                                    color = TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.W600
                                 )
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("PAID", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                                Text("PAID", color = TextSecondary, fontSize = 12.sp, letterSpacing = 0.5.sp)
                                 Text(
                                     Money.formatRupees(d.paid),
-                                    color = Success, fontSize = 14.sp, fontWeight = FontWeight.W600
+                                    color = Success, fontSize = 17.sp, fontWeight = FontWeight.W600
                                 )
                                 Text(
                                     "PENDING ${Money.formatRupees(d.pending)}",
-                                    color = ErrorRed, fontSize = 10.sp,
+                                    color = ErrorRed, fontSize = 12.sp,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
@@ -137,7 +137,7 @@ fun PaymentEntryScreen(
             item {
                 Text(
                     text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary, fontSize = 10.sp
+                    color = TextSecondary, fontSize = 12.sp
                 )
             }
             item {
@@ -172,15 +172,15 @@ fun PaymentEntryScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = Money.formatRupees(p.amount),
-                                        color = Success, fontSize = 13.sp, fontWeight = FontWeight.W500
+                                        color = Success, fontSize = 16.sp, fontWeight = FontWeight.W500
                                     )
                                     if (p.remark.isNotBlank()) {
-                                        Text(text = p.remark, color = TextSecondary, fontSize = 10.sp)
+                                        Text(text = p.remark, color = TextSecondary, fontSize = 12.sp)
                                     }
                                 }
                                 Text(
                                     text = DateUtils.formatDayShort(p.date),
-                                    color = TextSecondary, fontSize = 10.sp
+                                    color = TextSecondary, fontSize = 12.sp
                                 )
                             }
                             if (!isLast) {

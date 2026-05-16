@@ -94,20 +94,20 @@ fun ProductionScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
-                        .padding(12.dp)
+                        .padding(14.dp)
                 ) {
                     Text(
                         "DAILY PRODUCTION — LAST 7 DAYS",
-                        color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp
+                        color = TextSecondary, fontSize = 10.sp, letterSpacing = 0.6.sp
                     )
                     androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
                     SimpleBarChart(
                         values = dispDaily,
                         labels = dispLabels,
                         barColor = PurpleAccent,
-                        chartHeight = 78.dp
+                        chartHeight = 86.dp
                     )
                 }
             }
@@ -118,26 +118,26 @@ fun ProductionScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
-                        .padding(horizontal = 12.dp)
+                        .padding(horizontal = 14.dp)
                 ) {
                     if (useDemo) {
                         UiDemoData.pieceRates.forEachIndexed { idx, (sizeMl, rate) ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 11.dp),
+                                    .padding(vertical = 13.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "${sizeMl}ml",
-                                    color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500
+                                    color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500
                                 )
                                 Text(
                                     text = "₹${"%.2f".format(rate)} / piece",
-                                    color = WarningAmber, fontSize = 11.sp
+                                    color = WarningAmber, fontSize = 13.sp
                                 )
                             }
                             if (idx < UiDemoData.pieceRates.lastIndex) {
@@ -147,25 +147,25 @@ fun ProductionScreen(
                     } else if (productsWithRates.isEmpty()) {
                         Text(
                             "No products configured",
-                            color = TextSecondary, fontSize = 11.sp,
-                            modifier = Modifier.padding(vertical = 12.dp)
+                            color = TextSecondary, fontSize = 13.sp,
+                            modifier = Modifier.padding(vertical = 14.dp)
                         )
                     } else {
                         productsWithRates.forEachIndexed { idx, p ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 11.dp),
+                                    .padding(vertical = 13.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "${p.product.sizeMl}ml",
-                                    color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500
+                                    color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500
                                 )
                                 Text(
                                     text = "${Money.formatRupeesDouble(p.ratePerPiece)} / piece",
-                                    color = WarningAmber, fontSize = 11.sp
+                                    color = WarningAmber, fontSize = 13.sp
                                 )
                             }
                             if (idx < productsWithRates.lastIndex) {

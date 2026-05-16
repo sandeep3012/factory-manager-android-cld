@@ -107,7 +107,7 @@ fun ProfitLossReportScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(17.dp))
                         .background(SurfaceCard)
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -116,27 +116,27 @@ fun ProfitLossReportScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = "NET ${if (isProfit) "PROFIT" else "LOSS"} — THIS MONTH",
-                            color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.6.sp
+                            color = TextSecondary, fontSize = 14.sp, letterSpacing = 0.6.sp
                         )
                         Text(
                             text = Money.formatRupees(net),
-                            color = netColor, fontSize = 26.sp, fontWeight = FontWeight.Bold
+                            color = netColor, fontSize = 31.sp, fontWeight = FontWeight.Bold
                         )
                         val arrow = if (pctChange >= 0) "▲" else "▼"
                         val pctColor = if (pctChange >= 0) Success else ErrorRed
                         Text(
                             text = "$arrow ${"%.1f".format(kotlin.math.abs(pctChange))}% vs last month",
-                            color = pctColor, fontSize = 10.sp
+                            color = pctColor, fontSize = 14.sp
                         )
                         androidx.compose.foundation.layout.Spacer(Modifier.size(4.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             Column {
-                                Text("Revenue", color = TextSecondary, fontSize = 8.sp)
-                                Text(Money.formatRupees(revenue), color = Success, fontSize = 11.sp, fontWeight = FontWeight.W600)
+                                Text("Revenue", color = TextSecondary, fontSize = 14.sp)
+                                Text(Money.formatRupees(revenue), color = Success, fontSize = 13.sp, fontWeight = FontWeight.W600)
                             }
                             Column {
-                                Text("Costs", color = TextSecondary, fontSize = 8.sp)
-                                Text(Money.formatRupees(costs), color = ErrorRed, fontSize = 11.sp, fontWeight = FontWeight.W600)
+                                Text("Costs", color = TextSecondary, fontSize = 14.sp)
+                                Text(Money.formatRupees(costs), color = ErrorRed, fontSize = 13.sp, fontWeight = FontWeight.W600)
                             }
                         }
                     }
@@ -145,8 +145,8 @@ fun ProfitLossReportScreen(
                         secondaryValue = costs.toFloat().coerceAtLeast(0.1f),
                         primaryColor = Success,
                         secondaryColor = ErrorRed,
-                        size = 72.dp,
-                        strokeWidth = 10.dp
+                        size = 86.dp,
+                        strokeWidth = 12.dp
                     )
                 }
             }
@@ -157,14 +157,14 @@ fun ProfitLossReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
-                    Text("NET PROFIT — LAST 4 MONTHS", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                    Text("NET PROFIT — LAST 4 MONTHS", color = TextSecondary, fontSize = 14.sp, letterSpacing = 0.5.sp)
                     androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
                     if (trend.isEmpty()) {
-                        Text("No trend data yet", color = TextSecondary, fontSize = 11.sp)
+                        Text("No trend data yet", color = TextSecondary, fontSize = 13.sp)
                     } else {
                         SimpleLineChart(
                             values = trend,
@@ -189,7 +189,7 @@ fun ProfitLossReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(horizontal = 12.dp)
                 ) {

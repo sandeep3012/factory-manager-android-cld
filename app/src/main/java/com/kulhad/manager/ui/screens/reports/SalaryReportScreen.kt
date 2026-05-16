@@ -118,7 +118,7 @@ fun SalaryReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
@@ -144,23 +144,23 @@ fun SalaryReportScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            WorkerAvatar(name = row.name, size = 32.dp, fontSize = 10)
+                            WorkerAvatar(name = row.name, size = 38.dp, fontSize = 12)
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Text(row.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                    Text(row.name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
                                     StatusBadge(
                                         row.type,
                                         if (row.type == "Piece") BadgeType.PURPLE else BadgeType.INFO
                                     )
                                 }
-                                Text(text = row.computation, color = TextSecondary, fontSize = 10.sp)
+                                Text(text = row.computation, color = TextSecondary, fontSize = 14.sp)
                             }
                             Text(
                                 text = row.amount,
-                                color = Success, fontSize = 13.sp, fontWeight = FontWeight.W600
+                                color = Success, fontSize = 16.sp, fontWeight = FontWeight.W600
                             )
                         }
                         if (!isLast) {
@@ -179,13 +179,13 @@ fun SalaryReportScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            WorkerAvatar(name = row.workerName, size = 32.dp, fontSize = 10)
+                            WorkerAvatar(name = row.workerName, size = 38.dp, fontSize = 12)
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Text(row.workerName, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                    Text(row.workerName, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
                                     StatusBadge(
                                         if (row.workerType == WorkerType.PIECE) "Piece" else "Salary",
                                         if (row.workerType == WorkerType.PIECE) BadgeType.PURPLE else BadgeType.INFO
@@ -195,17 +195,17 @@ fun SalaryReportScreen(
                                     "${row.pieceQty} × rate = ${Money.formatRupeesDouble(row.pieceEarnings)}"
                                 else
                                     "${row.daysPresent} days × ${Money.formatRupees(row.dailyRate.toLong())} = ${Money.formatRupees(row.salaryEarnings.toLong())}"
-                                Text(text = computeLine, color = TextSecondary, fontSize = 10.sp)
+                                Text(text = computeLine, color = TextSecondary, fontSize = 14.sp)
                                 if (row.advances > 0) {
                                     Text(
                                         text = "Adv −${Money.formatRupees(row.advances.toLong())} → Net ${Money.formatRupees(row.netEarnings.toLong())}",
-                                        color = ErrorRed, fontSize = 10.sp
+                                        color = ErrorRed, fontSize = 14.sp
                                     )
                                 }
                             }
                             Text(
                                 text = Money.formatRupees(row.netEarnings.coerceAtLeast(0).toLong()),
-                                color = Success, fontSize = 13.sp, fontWeight = FontWeight.W600
+                                color = Success, fontSize = 16.sp, fontWeight = FontWeight.W600
                             )
                         }
                         if (!isLast) {

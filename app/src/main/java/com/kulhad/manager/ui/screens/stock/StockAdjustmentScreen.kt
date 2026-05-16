@@ -79,13 +79,13 @@ fun StockAdjustmentScreen(
                     androidx.compose.foundation.layout.Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(SurfaceCard)
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Current stock", color = TextSecondary, fontSize = 10.sp)
-                        Text("$currentStock pcs", color = InfoBlue, fontSize = 11.sp)
+                        Text("Current stock", color = TextSecondary, fontSize = 12.sp)
+                        Text("$currentStock pcs", color = InfoBlue, fontSize = 13.sp)
                     }
                 }
             }
@@ -119,7 +119,7 @@ fun StockAdjustmentScreen(
             item {
                 Text(
                     text = "Date: ${DateUtils.formatDay(System.currentTimeMillis())}",
-                    color = TextSecondary, fontSize = 10.sp
+                    color = TextSecondary, fontSize = 12.sp
                 )
             }
             item {

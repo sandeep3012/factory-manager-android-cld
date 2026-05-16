@@ -43,7 +43,7 @@ fun KulhadTopBar(
         if (onBack != null) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(38.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -54,7 +54,7 @@ fun KulhadTopBar(
         } else {
             Box(
                 modifier = Modifier
-                    .size(26.dp)
+                    .size(31.dp)
                     .clip(CircleShape)
                     .background(SurfaceCard)
             )
@@ -68,18 +68,18 @@ fun KulhadTopBar(
             Text(
                 text = title,
                 color = TextPrimary,
-                fontSize = 15.sp
+                fontSize = 18.sp
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     color = TextSecondary,
-                    fontSize = 10.sp
+                    fontSize = 12.sp
                 )
             }
         }
         Row(
-            modifier = Modifier.height(32.dp),
+            modifier = Modifier.height(38.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             actions()

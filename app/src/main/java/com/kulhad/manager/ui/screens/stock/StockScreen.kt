@@ -81,7 +81,7 @@ fun StockScreen(
             actions = {
                 TextButton(onClick = onAdjust) {
                     Icon(Icons.Outlined.Tune, contentDescription = null, tint = PrimaryBlue)
-                    Text("Adjust", color = PrimaryBlue, fontSize = 11.sp,
+                    Text("Adjust", color = PrimaryBlue, fontSize = 13.sp,
                         modifier = Modifier.padding(start = 4.dp))
                 }
             }
@@ -96,7 +96,7 @@ fun StockScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -108,18 +108,18 @@ fun StockScreen(
                             WarningAmber to lowQty.toFloat().coerceAtLeast(0.1f),
                             ErrorRed    to critQty.toFloat().coerceAtLeast(0.1f)
                         ),
-                        size = 64.dp,
-                        strokeWidth = 10.dp
+                        size = 77.dp,
+                        strokeWidth = 12.dp
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("STOCK STATUS", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                        Text("STOCK STATUS", color = TextSecondary, fontSize = 14.sp, letterSpacing = 0.5.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             LegendDot(Success,      "$healthyQty Healthy")
                             LegendDot(WarningAmber, "$lowQty Low")
                             LegendDot(ErrorRed,     "$critQty Critical")
                         }
                         Text("Total: $totalQty pieces",
-                            color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.W500)
+                            color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.W500)
                     }
                 }
             }
@@ -162,11 +162,11 @@ fun StockScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(text = row.label, color = TextPrimary,
-                            fontSize = 12.sp, fontWeight = FontWeight.W500)
+                            fontSize = 14.sp, fontWeight = FontWeight.W500)
                         Text(text = "${row.qty} pcs — ${(frac * 100).toInt()}%",
-                            color = TextSecondary, fontSize = 10.sp)
+                            color = TextSecondary, fontSize = 14.sp)
                     }
-                    ProgressBar(progress = frac, color = color, height = 5.dp)
+                    ProgressBar(progress = frac, color = color, height = 6.dp)
                 }
                 Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
             }
@@ -179,6 +179,6 @@ private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(modifier = Modifier.height(8.dp).then(Modifier.padding(0.dp))
             .clip(RoundedCornerShape(2.dp)).background(color).padding(horizontal = 4.dp))
-        Text(text = label, color = TextSecondary, fontSize = 9.sp)
+        Text(text = label, color = TextSecondary, fontSize = 13.sp)
     }
 }

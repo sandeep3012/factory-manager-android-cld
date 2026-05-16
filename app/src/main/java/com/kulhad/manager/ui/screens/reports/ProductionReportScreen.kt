@@ -120,14 +120,14 @@ fun ProductionReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
-                    Text("PRODUCTION BY SIZE (ml)", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                    Text("PRODUCTION BY SIZE (ml)", color = TextSecondary, fontSize = 10.sp, letterSpacing = 0.5.sp)
                     androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
                     if (dispBySize.isEmpty()) {
-                        Text("No production data this month", color = TextSecondary, fontSize = 11.sp)
+                        Text("No production data this month", color = TextSecondary, fontSize = 13.sp)
                     } else {
                         SimpleBarChart(
                             values = dispBySize.map { it.second },
@@ -145,12 +145,12 @@ fun ProductionReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
                     if (dispWorkers.isEmpty()) {
-                        Text("No worker data this month", color = TextSecondary, fontSize = 11.sp)
+                        Text("No worker data this month", color = TextSecondary, fontSize = 13.sp)
                     } else {
                         HorizontalBarChart(items = dispWorkers, barColor = WarningAmber)
                     }
@@ -166,7 +166,7 @@ fun ProductionReportScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(SurfaceCard)
                             .padding(horizontal = 12.dp)
                     ) {
@@ -181,8 +181,8 @@ fun ProductionReportScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(day, color = TextSecondary, fontSize = 11.sp)
-                                Text(qty, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                Text(day, color = TextSecondary, fontSize = 13.sp)
+                                Text(qty, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
                             }
                             if (idx < demoDays.lastIndex) {
                                 Box(Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
@@ -194,7 +194,7 @@ fun ProductionReportScreen(
                 item {
                     Text(
                         text = "No entries recorded this month",
-                        color = TextSecondary, fontSize = 11.sp,
+                        color = TextSecondary, fontSize = 13.sp,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 }
@@ -209,11 +209,11 @@ fun ProductionReportScreen(
                         ) {
                             Text(
                                 text = DateUtils.formatDayShort(entry.day),
-                                color = TextSecondary, fontSize = 11.sp
+                                color = TextSecondary, fontSize = 13.sp
                             )
                             Text(
                                 text = "${entry.qty} pcs",
-                                color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500
+                                color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500
                             )
                         }
                         if (!isLast) {

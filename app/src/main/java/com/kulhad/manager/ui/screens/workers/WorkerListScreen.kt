@@ -139,8 +139,8 @@ fun WorkerListScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Outlined.PersonOutline, contentDescription = null,
-                                tint = TextSecondary, modifier = Modifier.size(40.dp))
-                            Text("No workers added yet", color = TextSecondary, fontSize = 12.sp)
+                                tint = TextSecondary, modifier = Modifier.size(48.dp))
+                            Text("No workers added yet", color = TextSecondary, fontSize = 14.sp)
                         }
                     }
                 }
@@ -171,18 +171,18 @@ private fun WorkerRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onClick() }
-                .padding(vertical = 10.dp),
+                .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            WorkerAvatar(name = item.worker.name, size = 32.dp, fontSize = 10)
+            WorkerAvatar(name = item.worker.name, size = 38.dp, fontSize = 12)
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.worker.name, color = TextPrimary,
-                    fontSize = 12.sp, fontWeight = FontWeight.W500)
+                    fontSize = 14.sp, fontWeight = FontWeight.W500)
                 val typeStr = if (item.worker.currentType == WorkerType.PIECE)
                     "Piece · ${item.worker.phone}" else
                     "Salary · ${Money.formatRupees(item.worker.dailyRate)}/day"
-                Text(text = typeStr, color = TextSecondary, fontSize = 10.sp)
+                Text(text = typeStr, color = TextSecondary, fontSize = 12.sp)
             }
             when (item.isPresentToday) {
                 true  -> StatusBadge("Present", BadgeType.SUCCESS)
@@ -190,11 +190,11 @@ private fun WorkerRow(
                 null  -> StatusBadge("—",       BadgeType.INFO)
             }
             Box(
-                modifier = Modifier.size(26.dp).clip(CircleShape).clickable { onHistory() },
+                modifier = Modifier.size(31.dp).clip(CircleShape).clickable { onHistory() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Outlined.History, contentDescription = "History",
-                    tint = TextSecondary, modifier = Modifier.size(16.dp))
+                    tint = TextSecondary, modifier = Modifier.size(19.dp))
             }
         }
         if (!isLast) {
@@ -207,21 +207,21 @@ private fun WorkerRow(
 private fun DemoWorkerRow(name: String, detail: String, isPresent: Boolean, isLast: Boolean = false) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            WorkerAvatar(name = name, size = 32.dp, fontSize = 10)
+            WorkerAvatar(name = name, size = 38.dp, fontSize = 12)
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = name, color = TextPrimary,
-                    fontSize = 12.sp, fontWeight = FontWeight.W500)
-                Text(text = detail, color = TextSecondary, fontSize = 10.sp)
+                    fontSize = 14.sp, fontWeight = FontWeight.W500)
+                Text(text = detail, color = TextSecondary, fontSize = 12.sp)
             }
             StatusBadge(if (isPresent) "Present" else "Absent",
                 if (isPresent) BadgeType.SUCCESS else BadgeType.ERROR)
-            Box(modifier = Modifier.size(26.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(31.dp), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.History, contentDescription = null,
-                    tint = TextSecondary, modifier = Modifier.size(16.dp))
+                    tint = TextSecondary, modifier = Modifier.size(19.dp))
             }
         }
         if (!isLast) {

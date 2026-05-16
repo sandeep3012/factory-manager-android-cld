@@ -128,14 +128,14 @@ fun SalesReportScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
-                    Text("DAILY REVENUE", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                    Text("DAILY REVENUE", color = TextSecondary, fontSize = 12.sp, letterSpacing = 0.5.sp)
                     androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
                     if (dispDaily.isEmpty()) {
-                        Text("No sales data this month", color = TextSecondary, fontSize = 11.sp)
+                        Text("No sales data this month", color = TextSecondary, fontSize = 13.sp)
                     } else {
                         SimpleLineChart(
                             values = dispDaily,
@@ -150,8 +150,8 @@ fun SalesReportScreen(
                             ) {
                                 val first = daily.firstOrNull()?.first
                                 val last = daily.lastOrNull()?.first
-                                if (first != null) Text(DateUtils.formatDayShort(first), color = TextSecondary, fontSize = 9.sp)
-                                if (last != null && last != first) Text(DateUtils.formatDayShort(last), color = TextSecondary, fontSize = 9.sp)
+                                if (first != null) Text(DateUtils.formatDayShort(first), color = TextSecondary, fontSize = 13.sp)
+                                if (last != null && last != first) Text(DateUtils.formatDayShort(last), color = TextSecondary, fontSize = 13.sp)
                             }
                         }
                     }
@@ -164,7 +164,7 @@ fun SalesReportScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -180,7 +180,7 @@ fun SalesReportScreen(
                             }
                             Text(
                                 text = "Collected: ${Money.formatRupees(dispCollected)}",
-                                color = TextPrimary, fontSize = 11.sp
+                                color = TextPrimary, fontSize = 13.sp
                             )
                         }
                         Row(
@@ -192,7 +192,7 @@ fun SalesReportScreen(
                             }
                             Text(
                                 text = "Pending: ${Money.formatRupees(dispPending)}",
-                                color = TextPrimary, fontSize = 11.sp
+                                color = TextPrimary, fontSize = 13.sp
                             )
                         }
                     }
@@ -201,8 +201,8 @@ fun SalesReportScreen(
                             Success  to dispCollected.toFloat().coerceAtLeast(0.1f),
                             ErrorRed to dispPending.toFloat().coerceAtLeast(0.1f)
                         ),
-                        size = 64.dp,
-                        strokeWidth = 10.dp
+                        size = 77.dp,
+                        strokeWidth = 12.dp
                     )
                 }
             }
@@ -221,12 +221,12 @@ fun SalesReportScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            WorkerAvatar(name = c.name, size = 28.dp, fontSize = 9)
+                            WorkerAvatar(name = c.name, size = 34.dp, fontSize = 9)
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(c.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
-                                Text("${c.orders} orders", color = TextSecondary, fontSize = 10.sp)
+                                Text(c.name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
+                                Text("${c.orders} orders", color = TextSecondary, fontSize = 12.sp)
                             }
-                            Text(c.total, color = Success, fontSize = 12.sp, fontWeight = FontWeight.W600)
+                            Text(c.total, color = Success, fontSize = 14.sp, fontWeight = FontWeight.W600)
                         }
                         if (!isLast) {
                             Box(Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
@@ -239,7 +239,7 @@ fun SalesReportScreen(
                     item {
                         Text(
                             "No customers this month",
-                            color = TextSecondary, fontSize = 11.sp,
+                            color = TextSecondary, fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
                     }
@@ -254,8 +254,8 @@ fun SalesReportScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
-                                Text(Money.formatRupees(amount.toLong()), color = Success, fontSize = 12.sp, fontWeight = FontWeight.W600)
+                                Text(name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
+                                Text(Money.formatRupees(amount.toLong()), color = Success, fontSize = 14.sp, fontWeight = FontWeight.W600)
                             }
                             if (!isLast) {
                                 Box(Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))

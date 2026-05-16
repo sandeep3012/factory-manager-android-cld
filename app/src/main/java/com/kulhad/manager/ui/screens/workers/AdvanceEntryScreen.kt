@@ -75,7 +75,7 @@ fun AdvanceEntryScreen(
             item {
                 Text(
                     "SELECT WORKER",
-                    color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.6.sp
+                    color = TextSecondary, fontSize = 14.sp, letterSpacing = 0.6.sp
                 )
             }
 
@@ -84,7 +84,7 @@ fun AdvanceEntryScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(horizontal = 12.dp)
                 ) {
@@ -108,14 +108,14 @@ fun AdvanceEntryScreen(
                             Text(
                                 text = w.name,
                                 color = TextPrimary,
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 fontWeight = if (sel) FontWeight.W600 else FontWeight.W500,
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
                                 text = if (w.currentType.name == "PIECE") "Piece" else "Salary",
                                 color = if (sel) WarningAmber else TextSecondary,
-                                fontSize = 10.sp
+                                fontSize = 14.sp
                             )
                         }
                         if (idx < workers.lastIndex) {
@@ -125,7 +125,7 @@ fun AdvanceEntryScreen(
                     if (workers.isEmpty()) {
                         Text(
                             "No workers found",
-                            color = TextSecondary, fontSize = 11.sp,
+                            color = TextSecondary, fontSize = 16.sp,
                             modifier = Modifier.padding(vertical = 12.dp)
                         )
                     }
@@ -159,7 +159,7 @@ fun AdvanceEntryScreen(
             item {
                 Text(
                     text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary, fontSize = 10.sp
+                    color = TextSecondary, fontSize = 14.sp
                 )
             }
             item {
@@ -190,7 +190,7 @@ fun AdvanceEntryScreen(
                         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No advances yet", color = TextSecondary, fontSize = 12.sp)
+                        Text("No advances yet", color = TextSecondary, fontSize = 14.sp)
                     }
                 }
             } else {
@@ -207,15 +207,15 @@ fun AdvanceEntryScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = Money.formatRupees(a.amount),
-                                    color = ErrorRed, fontSize = 13.sp, fontWeight = FontWeight.W500
+                                    color = ErrorRed, fontSize = 16.sp, fontWeight = FontWeight.W500
                                 )
                                 if (a.remark.isNotBlank()) {
-                                    Text(text = a.remark, color = TextSecondary, fontSize = 10.sp)
+                                    Text(text = a.remark, color = TextSecondary, fontSize = 14.sp)
                                 }
                             }
                             Text(
                                 text = DateUtils.formatDayShort(a.date),
-                                color = TextSecondary, fontSize = 10.sp
+                                color = TextSecondary, fontSize = 14.sp
                             )
                         }
                         if (!isLast) {

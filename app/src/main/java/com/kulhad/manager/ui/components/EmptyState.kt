@@ -35,8 +35,8 @@ fun EmptyState(
             imageVector = icon,
             contentDescription = null,
             tint = TextTertiary,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(43.dp)
         )
-        Text(text = message, color = TextSecondary, fontSize = 12.sp)
+        Text(text = message, color = TextSecondary, fontSize = 14.sp)
     }
 }

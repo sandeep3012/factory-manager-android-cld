@@ -98,8 +98,8 @@ fun ExpenseScreen(
                             segments = dispBreakdown.mapIndexed { idx, (_, v) ->
                                 palette[idx % palette.size] to v.toFloat()
                             }.ifEmpty { listOf(WarningAmber to 1f) },
-                            size = 56.dp,
-                            strokeWidth = 8.dp
+                            size = 67.dp,
+                            strokeWidth = 10.dp
                         )
                     }
                 )
@@ -122,12 +122,12 @@ fun ExpenseScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(horizontal = 12.dp)
                 ) {
                     if (dispBreakdown.isEmpty()) {
-                        Text("No expenses this month", color = TextSecondary, fontSize = 11.sp,
+                        Text("No expenses this month", color = TextSecondary, fontSize = 13.sp,
                             modifier = Modifier.padding(vertical = 12.dp))
                     } else {
                         dispBreakdown.forEachIndexed { idx, (name, amt) ->
@@ -155,9 +155,9 @@ fun ExpenseScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(text = e.amount, color = TextPrimary,
-                                    fontSize = 13.sp, fontWeight = FontWeight.W500)
-                                Text(text = e.remark, color = TextSecondary, fontSize = 10.sp)
-                                Text(text = e.date, color = TextSecondary, fontSize = 9.sp)
+                                    fontSize = 16.sp, fontWeight = FontWeight.W500)
+                                Text(text = e.remark, color = TextSecondary, fontSize = 14.sp)
+                                Text(text = e.date, color = TextSecondary, fontSize = 13.sp)
                             }
                             StatusBadge(e.type, BadgeType.PURPLE)
                         }
@@ -171,8 +171,8 @@ fun ExpenseScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Outlined.Receipt, contentDescription = null,
-                                tint = TextSecondary, modifier = Modifier.size(36.dp))
-                            Text("No expenses recorded yet", color = TextSecondary, fontSize = 12.sp)
+                                tint = TextSecondary, modifier = Modifier.size(43.dp))
+                            Text("No expenses recorded yet", color = TextSecondary, fontSize = 14.sp)
                         }
                     }
                 }
@@ -186,12 +186,12 @@ fun ExpenseScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(text = Money.formatRupees(e.amount), color = TextPrimary,
-                                    fontSize = 13.sp, fontWeight = FontWeight.W500)
+                                    fontSize = 16.sp, fontWeight = FontWeight.W500)
                                 if (e.remark.isNotBlank()) {
-                                    Text(text = e.remark, color = TextSecondary, fontSize = 10.sp)
+                                    Text(text = e.remark, color = TextSecondary, fontSize = 14.sp)
                                 }
                                 Text(text = DateUtils.formatDayShort(e.date),
-                                    color = TextSecondary, fontSize = 9.sp)
+                                    color = TextSecondary, fontSize = 13.sp)
                             }
                             StatusBadge(e.typeName, BadgeType.PURPLE)
                         }

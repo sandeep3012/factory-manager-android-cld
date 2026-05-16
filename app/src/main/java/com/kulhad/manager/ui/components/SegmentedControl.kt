@@ -31,26 +31,26 @@ fun SegmentedControl(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(SurfaceCard)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         options.forEach { opt ->
             val active = opt == selected
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(if (active) PrimaryBlueDark else androidx.compose.ui.graphics.Color.Transparent)
                     .clickable { onSelect(opt) }
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = opt,
                     color = if (active) PrimaryBlueLight else TextTertiary,
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                     fontWeight = if (active) FontWeight.W600 else FontWeight.W500
                 )
             }

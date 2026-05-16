@@ -31,8 +31,8 @@ fun KulhadButton(
     style: KulhadButtonStyle = KulhadButtonStyle.PRIMARY,
     enabled: Boolean = true
 ) {
-    val shape = RoundedCornerShape(10.dp)
-    val padding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+    val shape = RoundedCornerShape(12.dp)
+    val padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
     when (style) {
         KulhadButtonStyle.PRIMARY -> Button(
             onClick = onClick,
@@ -48,7 +48,7 @@ fun KulhadButton(
             contentPadding = padding
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = text, fontSize = 13.sp, fontWeight = FontWeight.W500)
+                Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.W500)
             }
         }
 
@@ -66,7 +66,7 @@ fun KulhadButton(
             contentPadding = padding
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = text, fontSize = 13.sp, fontWeight = FontWeight.W500)
+                Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.W500)
             }
         }
 
@@ -82,7 +82,7 @@ fun KulhadButton(
             contentPadding = padding
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = text, fontSize = 12.sp)
+                Text(text = text, fontSize = 14.sp)
             }
         }
     }

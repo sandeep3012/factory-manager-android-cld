@@ -94,16 +94,16 @@ fun SalesScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
                     Text("DAILY SALES — THIS WEEK", color = TextSecondary,
-                        fontSize = 8.sp, letterSpacing = 0.5.sp)
+                        fontSize = 10.sp, letterSpacing = 0.5.sp)
                     androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
                     SimpleLineChart(
                         values = dispDaily,
-                        chartHeight = 68.dp,
+                        chartHeight = 82.dp,
                         lineColor = Success
                     )
                 }
@@ -135,8 +135,8 @@ fun SalesScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Outlined.Storefront, contentDescription = null,
-                                tint = TextSecondary, modifier = Modifier.size(36.dp))
-                            Text("No sales recorded yet", color = TextSecondary, fontSize = 12.sp)
+                                tint = TextSecondary, modifier = Modifier.size(43.dp))
+                            Text("No sales recorded yet", color = TextSecondary, fontSize = 14.sp)
                         }
                     }
                 }
@@ -184,26 +184,26 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
             // Icon box (HTML screen 7 style)
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(7.dp))
                     .background(InfoBlue.copy(alpha = 0.12f))
                     .padding(7.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Outlined.Storefront, contentDescription = null,
-                    tint = InfoBlue, modifier = Modifier.size(14.dp))
+                    tint = InfoBlue, modifier = Modifier.size(17.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = s.sale.customerName, color = TextPrimary,
-                    fontSize = 12.sp, fontWeight = FontWeight.W500)
+                    fontSize = 14.sp, fontWeight = FontWeight.W500)
                 Text(
                     text = DateUtils.formatDayShort(s.sale.date),
-                    color = TextSecondary, fontSize = 9.sp
+                    color = TextSecondary, fontSize = 13.sp
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = Money.formatRupees(s.sale.totalAmount),
-                    color = Success, fontSize = 12.sp, fontWeight = FontWeight.W600
+                    color = Success, fontSize = 14.sp, fontWeight = FontWeight.W600
                 )
                 when (s.status) {
                     SaleStatus.PAID    -> StatusBadge("Paid",    BadgeType.SUCCESS)

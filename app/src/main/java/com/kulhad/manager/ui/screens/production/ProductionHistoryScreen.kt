@@ -94,12 +94,12 @@ fun ProductionHistoryScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp)
                 ) {
                     if (topSizes.isEmpty()) {
-                        Text("No production this month", color = TextSecondary, fontSize = 11.sp)
+                        Text("No production this month", color = TextSecondary, fontSize = 13.sp)
                     } else {
                         HorizontalBarChart(items = topSizes, barColor = PurpleAccent)
                     }
@@ -128,15 +128,15 @@ fun ProductionHistoryScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            WorkerAvatar(name = name, size = 30.dp, fontSize = 9)
+                            WorkerAvatar(name = name, size = 36.dp, fontSize = 11)
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
-                                Text(meta, color = TextSecondary, fontSize = 10.sp)
-                                Text(detail, color = TextSecondary, fontSize = 10.sp)
+                                Text(name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
+                                Text(meta, color = TextSecondary, fontSize = 14.sp)
+                                Text(detail, color = TextSecondary, fontSize = 14.sp)
                             }
                             Text(
                                 text = "₹2,448",
-                                color = Success, fontSize = 12.sp, fontWeight = FontWeight.W600
+                                color = Success, fontSize = 14.sp, fontWeight = FontWeight.W600
                             )
                         }
                         if (!isLast) {
@@ -150,7 +150,7 @@ fun ProductionHistoryScreen(
                         modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No production entries yet", color = TextSecondary, fontSize = 12.sp)
+                        Text("No production entries yet", color = TextSecondary, fontSize = 14.sp)
                     }
                 }
             } else {
@@ -164,21 +164,21 @@ fun ProductionHistoryScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            WorkerAvatar(name = e.workerName, size = 30.dp, fontSize = 9)
+                            WorkerAvatar(name = e.workerName, size = 36.dp, fontSize = 11)
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(e.workerName, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                Text(e.workerName, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
                                 Text(
                                     "${e.productSize}ml • ${DateUtils.formatDayShort(e.date)}",
-                                    color = TextSecondary, fontSize = 10.sp
+                                    color = TextSecondary, fontSize = 14.sp
                                 )
                                 Text(
                                     "${e.quantityProduced} pcs • def ${e.defectiveQuantity}",
-                                    color = TextSecondary, fontSize = 10.sp
+                                    color = TextSecondary, fontSize = 14.sp
                                 )
                             }
                             Text(
                                 text = Money.formatRupeesDouble(e.earnings),
-                                color = Success, fontSize = 12.sp, fontWeight = FontWeight.W600
+                                color = Success, fontSize = 14.sp, fontWeight = FontWeight.W600
                             )
                         }
                         if (!isLast) {

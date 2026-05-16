@@ -90,7 +90,7 @@ fun AddProductionScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(horizontal = 12.dp)
                 ) {
@@ -113,14 +113,14 @@ fun AddProductionScreen(
                             Text(
                                 text = w.name,
                                 color = TextPrimary,
-                                fontSize = 12.sp,
+                                fontSize = 17.sp,
                                 fontWeight = if (sel) FontWeight.W600 else FontWeight.W500,
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
                                 text = w.currentType.name.lowercase().replaceFirstChar { it.uppercase() },
                                 color = if (sel) PrimaryBlue else TextSecondary,
-                                fontSize = 10.sp
+                                fontSize = 17.sp
                             )
                         }
                         if (idx < workers.lastIndex) {
@@ -130,7 +130,7 @@ fun AddProductionScreen(
                     if (workers.isEmpty()) {
                         Text(
                             "No workers found",
-                            color = TextSecondary, fontSize = 11.sp,
+                            color = TextSecondary, fontSize = 13.sp,
                             modifier = Modifier.padding(vertical = 12.dp)
                         )
                     }
@@ -151,7 +151,7 @@ fun AddProductionScreen(
                     Text(
                         text = "Rate · ${sizeMl}ml — ${Money.formatRupeesDouble(rate)} / piece",
                         color = WarningAmber,
-                        fontSize = 11.sp
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -176,7 +176,7 @@ fun AddProductionScreen(
             item {
                 Text(
                     text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary, fontSize = 10.sp
+                    color = TextSecondary, fontSize = 17.sp
                 )
             }
 
@@ -185,21 +185,21 @@ fun AddProductionScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text(text = "Stock change", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
-                        Text(text = "+$net pcs", color = Success, fontSize = 14.sp, fontWeight = FontWeight.W600)
+                        Text(text = "Stock change", color = TextSecondary, fontSize = 17.sp, letterSpacing = 0.5.sp)
+                        Text(text = "+$net pcs", color = Success, fontSize = 17.sp, fontWeight = FontWeight.W600)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(text = "Earnings", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp)
+                        Text(text = "Earnings", color = TextSecondary, fontSize = 17.sp, letterSpacing = 0.5.sp)
                         Text(
                             text = Money.formatRupeesDouble(earnings),
-                            color = Success, fontSize = 14.sp, fontWeight = FontWeight.W600
+                            color = Success, fontSize = 17.sp, fontWeight = FontWeight.W600
                         )
                     }
                 }
@@ -209,7 +209,7 @@ fun AddProductionScreen(
                 item {
                     Text(
                         text = "Defective cannot exceed quantity",
-                        color = ErrorRed, fontSize = 11.sp
+                        color = ErrorRed, fontSize = 13.sp
                     )
                 }
             }

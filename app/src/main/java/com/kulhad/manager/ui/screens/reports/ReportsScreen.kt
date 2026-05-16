@@ -106,7 +106,7 @@ private fun ReportCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(SurfaceCard)
             .clickable { onClick() }
             .padding(14.dp),
@@ -123,8 +123,8 @@ private fun ReportCard(
             Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.W500)
-            Text(text = subtitle, color = TextSecondary, fontSize = 10.sp)
+            Text(text = title, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.W500)
+            Text(text = subtitle, color = TextSecondary, fontSize = 12.sp)
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,

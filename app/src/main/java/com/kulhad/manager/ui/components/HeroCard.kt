@@ -41,33 +41,33 @@ fun HeroCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(SurfaceCard)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = label.uppercase(),
                 color = TextSecondary,
-                fontSize = 8.sp,
-                letterSpacing = 0.6.sp
+                fontSize = 10.sp,
+                letterSpacing = 0.72.sp
             )
             Text(
                 text = value,
                 color = valueColor,
-                fontSize = 22.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.W600
             )
             if (change != null) {
                 Text(
                     text = change,
                     color = changeColor,
-                    fontSize = 9.sp
+                    fontSize = 11.sp
                 )
             }
             extraContent?.invoke()
@@ -93,19 +93,19 @@ fun HeroCardDual(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(SurfaceCard)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(text = primaryLabel, color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.6.sp)
-            Text(text = primaryValue, color = primaryColor, fontSize = 20.sp, fontWeight = FontWeight.W600)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(text = primaryLabel, color = TextSecondary, fontSize = 10.sp, letterSpacing = 0.72.sp)
+            Text(text = primaryValue, color = primaryColor, fontSize = 24.sp, fontWeight = FontWeight.W600)
         }
-        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(text = secondaryLabel, color = TextSecondary, fontSize = 8.sp)
-            Text(text = secondaryValue, color = secondaryColor, fontSize = 16.sp, fontWeight = FontWeight.W500)
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(text = secondaryLabel, color = TextSecondary, fontSize = 10.sp)
+            Text(text = secondaryValue, color = secondaryColor, fontSize = 19.sp, fontWeight = FontWeight.W500)
         }
     }
 }

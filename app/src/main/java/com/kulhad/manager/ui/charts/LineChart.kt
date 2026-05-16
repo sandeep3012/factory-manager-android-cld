@@ -23,7 +23,7 @@ fun SimpleLineChart(
     values: List<Float>,
     modifier: Modifier = Modifier,
     lineColor: Color = Success,
-    chartHeight: Dp = 60.dp,
+    chartHeight: Dp = 72.dp,
     showGrid: Boolean = true
 ) {
     Column(modifier = modifier.fillMaxWidth().height(chartHeight)) {
@@ -63,7 +63,7 @@ fun SimpleLineChart(
             drawPath(
                 path = path,
                 color = lineColor,
-                style = Stroke(width = 4f, cap = StrokeCap.Round)
+                style = Stroke(width = 5f, cap = StrokeCap.Round)
             )
 
             // dots
@@ -71,7 +71,7 @@ fun SimpleLineChart(
                 val x = if (values.size == 1) w / 2f else w * i / (values.size - 1).toFloat()
                 val frac = (v - minV) / range
                 val y = h - padY - (h - 2 * padY) * frac
-                drawCircle(color = lineColor, radius = 4f, center = Offset(x, y))
+                drawCircle(color = lineColor, radius = 5f, center = Offset(x, y))
             }
         }
     }

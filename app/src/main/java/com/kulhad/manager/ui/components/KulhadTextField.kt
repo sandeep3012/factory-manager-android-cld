@@ -38,15 +38,15 @@ fun KulhadTextField(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(SurfaceCard)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Text(
             text = label.uppercase(),
             color = TextSecondary,
-            fontSize = 8.sp,
-            letterSpacing = 0.6.sp
+            fontSize = 10.sp,
+            letterSpacing = 0.72.sp
         )
         BasicTextField(
             value = value,
@@ -55,13 +55,13 @@ fun KulhadTextField(
             cursorBrush = SolidColor(PrimaryBlue),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            textStyle = LocalTextStyle.current.copy(color = TextField, fontSize = 14.sp),
+            textStyle = LocalTextStyle.current.copy(color = TextField, fontSize = 17.sp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 4.dp),
+                .padding(top = 5.dp),
             decorationBox = { inner ->
                 if (value.isEmpty() && placeholder.isNotEmpty()) {
-                    Text(text = placeholder, color = TextTertiary, fontSize = 14.sp)
+                    Text(text = placeholder, color = TextTertiary, fontSize = 17.sp)
                 }
                 inner()
             }
@@ -70,8 +70,8 @@ fun KulhadTextField(
             Text(
                 text = helper,
                 color = TextTertiary,
-                fontSize = 9.sp,
-                modifier = Modifier.padding(top = 4.dp)
+                fontSize = 11.sp,
+                modifier = Modifier.padding(top = 5.dp)
             )
         }
     }

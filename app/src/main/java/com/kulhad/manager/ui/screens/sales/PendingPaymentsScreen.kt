@@ -82,8 +82,8 @@ fun PendingPaymentsScreen(
                             secondaryValue = dispPending.toFloat().coerceAtLeast(0.1f),
                             primaryColor = Success,
                             secondaryColor = ErrorRed,
-                            size = 56.dp,
-                            strokeWidth = 8.dp
+                            size = 67.dp,
+                            strokeWidth = 10.dp
                         )
                     }
                 )
@@ -110,7 +110,7 @@ fun PendingPaymentsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(SurfaceCard)
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -121,8 +121,8 @@ fun PendingPaymentsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(name, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.W500)
-                                Text(meta, color = TextSecondary, fontSize = 10.sp)
+                                Text(name, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.W500)
+                                Text(meta, color = TextSecondary, fontSize = 14.sp)
                             }
                             if (frac > 0f) StatusBadge("Partial", BadgeType.WARNING)
                             else StatusBadge("Unpaid", BadgeType.ERROR)
@@ -134,8 +134,8 @@ fun PendingPaymentsScreen(
                         ) {
                             val paid = if (frac > 0f) "Paid ${(frac * 100).toInt()}%" else "No payments"
                             val pendStr = if (frac > 0f) "Pending ${(100 - (frac * 100).toInt())}%" else "Full amount"
-                            Text(paid, color = Success, fontSize = 10.sp)
-                            Text(pendStr, color = ErrorRed, fontSize = 10.sp)
+                            Text(paid, color = Success, fontSize = 14.sp)
+                            Text(pendStr, color = ErrorRed, fontSize = 14.sp)
                         }
                     }
                 }
@@ -151,9 +151,9 @@ fun PendingPaymentsScreen(
                         ) {
                             Icon(
                                 Icons.Outlined.MonetizationOn, contentDescription = null,
-                                tint = TextSecondary, modifier = Modifier.size(36.dp)
+                                tint = TextSecondary, modifier = Modifier.size(43.dp)
                             )
-                            Text("No pending payments", color = TextSecondary, fontSize = 12.sp)
+                            Text("No pending payments", color = TextSecondary, fontSize = 14.sp)
                         }
                     }
                 }
@@ -163,7 +163,7 @@ fun PendingPaymentsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(SurfaceCard)
                             .clickable { onSaleClick(s.sale.id) }
                             .padding(12.dp),
@@ -175,10 +175,10 @@ fun PendingPaymentsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(s.sale.customerName, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.W500)
+                                Text(s.sale.customerName, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.W500)
                                 Text(
                                     "${DateUtils.formatDayShort(s.sale.date)} • ${Money.formatRupees(s.sale.totalAmount)}",
-                                    color = TextSecondary, fontSize = 10.sp
+                                    color = TextSecondary, fontSize = 14.sp
                                 )
                             }
                             when (s.status) {
@@ -191,8 +191,8 @@ fun PendingPaymentsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Paid ${Money.formatRupees(s.paid)}", color = Success, fontSize = 10.sp)
-                            Text("Pending ${Money.formatRupees(s.pending)}", color = ErrorRed, fontSize = 10.sp)
+                            Text("Paid ${Money.formatRupees(s.paid)}", color = Success, fontSize = 14.sp)
+                            Text("Pending ${Money.formatRupees(s.pending)}", color = ErrorRed, fontSize = 14.sp)
                         }
                     }
                 }

@@ -97,18 +97,18 @@ fun AttendanceScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         "ATTENDANCE TREND • LAST 7 DAYS",
-                        color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.5.sp
+                        color = TextSecondary, fontSize = 12.sp, letterSpacing = 0.5.sp
                     )
                     SimpleLineChart(
                         values = dispTrend.ifEmpty { listOf(0f) },
-                        chartHeight = 60.dp,
+                        chartHeight = 72.dp,
                         lineColor = Success
                     )
                 }
@@ -147,10 +147,10 @@ fun AttendanceScreen(
                                     checkmarkColor = TextPrimary
                                 )
                             )
-                            WorkerAvatar(name = w.name, size = 28.dp, fontSize = 9)
+                            WorkerAvatar(name = w.name, size = 34.dp, fontSize = 11)
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(w.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
-                                Text(w.type, color = TextSecondary, fontSize = 10.sp)
+                                Text(w.name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
+                                Text(w.type, color = TextSecondary, fontSize = 12.sp)
                             }
                             val isP = demoChecked.value
                             StatusBadge(if (isP) "Present" else "Absent", if (isP) BadgeType.SUCCESS else BadgeType.ERROR)
@@ -179,11 +179,11 @@ fun AttendanceScreen(
                                     checkmarkColor = TextPrimary
                                 )
                             )
-                            WorkerAvatar(name = w.name, size = 28.dp, fontSize = 9)
+                            WorkerAvatar(name = w.name, size = 34.dp, fontSize = 11)
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(w.name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500)
+                                Text(w.name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500)
                                 val typeLabel = if (w.currentType == WorkerType.PIECE) "Piece" else "Salary"
-                                Text(typeLabel, color = TextSecondary, fontSize = 10.sp)
+                                Text(typeLabel, color = TextSecondary, fontSize = 12.sp)
                             }
                             val isP = checked[w.id] == true
                             StatusBadge(if (isP) "Present" else "Absent", if (isP) BadgeType.SUCCESS else BadgeType.ERROR)

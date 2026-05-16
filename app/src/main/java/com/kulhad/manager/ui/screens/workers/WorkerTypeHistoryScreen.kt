@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,11 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kulhad.manager.ui.components.bottomSheetContentInsets
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.util.DateUtils
@@ -72,7 +76,7 @@ fun WorkerTypeHistoryScreen(
             // Section label
             if (history.isNotEmpty()) {
                 item {
-                    Text("WORKER TYPE HISTORY", color = TextSecondary, fontSize = 8.sp, letterSpacing = 0.6.sp)
+                    Text("WORKER TYPE HISTORY", color = TextSecondary, fontSize = 17.sp, letterSpacing = 0.6.sp)
                 }
             }
 
@@ -81,14 +85,14 @@ fun WorkerTypeHistoryScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(SurfaceCard)
                         .padding(horizontal = 12.dp)
                 ) {
                     if (history.isEmpty()) {
                         Text(
                             "No type changes yet",
-                            color = TextSecondary, fontSize = 11.sp,
+                            color = TextSecondary, fontSize = 13.sp,
                             modifier = Modifier.padding(vertical = 12.dp)
                         )
                     } else {
@@ -105,16 +109,16 @@ fun WorkerTypeHistoryScreen(
                                     val typeLabel = if (row.workerType == WorkerType.PIECE) "Piece worker" else "Salary worker"
                                     Text(
                                         text = typeLabel,
-                                        color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.W500
+                                        color = TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.W500
                                     )
                                     val rateLine = if (row.workerType == WorkerType.SALARY)
                                         "${Money.formatRupees(row.dailyRate)}/day"
                                     else
                                         "Per piece (see piece rates)"
-                                    Text(text = rateLine, color = TextSecondary, fontSize = 10.sp)
+                                    Text(text = rateLine, color = TextSecondary, fontSize = 17.sp)
                                     Text(
                                         text = "From ${DateUtils.formatDay(row.effectiveFrom)}",
-                                        color = TextSecondary, fontSize = 9.sp
+                                        color = TextSecondary, fontSize = 13.sp
                                     )
                                 }
                                 if (isCurrent) StatusBadge("Current", BadgeType.INFO)
@@ -140,7 +144,8 @@ fun WorkerTypeHistoryScreen(
         ModalBottomSheet(
             onDismissRequest = { sheetOpen = false },
             sheetState = sheetState,
-            containerColor = SurfaceCard
+            containerColor = SurfaceCard,
+            windowInsets = WindowInsets(0) // Content handles nav-bar and IME insets
         ) {
             ChangeTypeSheet(
                 onSave = { type, rate, effectiveFrom ->
@@ -161,34 +166,54 @@ private fun ChangeTypeSheet(
     var rate by remember { mutableStateOf("") }
     val effectiveFrom = DateUtils.todayStart()
 
+    val maxScrollHeight = (LocalConfiguration.current.screenHeightDp * 0.55f).dp
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .bottomSheetContentInsets()
     ) {
-        Text(
-            text = "Change worker type",
-            color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500
-        )
-        SegmentedControl(
-            options = listOf("Piece worker", "Salary worker"),
-            selected = typeStr,
-            onSelect = { typeStr = it }
-        )
-        if (typeStr == "Salary worker") {
-            KulhadTextField(
-                label = "Daily rate (₹/day)",
-                value = rate,
-                onValueChange = { rate = it.filter { ch -> ch.isDigit() } },
-                keyboardType = KeyboardType.Number
-            )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxScrollHeight),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item {
+                Text(
+                    text = "Change worker type",
+                    color = TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.W500
+                )
+            }
+            item {
+                SegmentedControl(
+                    options = listOf("Piece worker", "Salary worker"),
+                    selected = typeStr,
+                    onSelect = { typeStr = it }
+                )
+            }
+            if (typeStr == "Salary worker") {
+                item {
+                    KulhadTextField(
+                        label = "Daily rate (₹/day)",
+                        value = rate,
+                        onValueChange = { rate = it.filter { ch -> ch.isDigit() } },
+                        keyboardType = KeyboardType.Number
+                    )
+                }
+            }
+            item {
+                Text(
+                    text = "Effective from ${DateUtils.formatDay(effectiveFrom)}",
+                    color = TextSecondary, fontSize = 17.sp
+                )
+            }
         }
-        Text(
-            text = "Effective from ${DateUtils.formatDay(effectiveFrom)}",
-            color = TextSecondary, fontSize = 10.sp
-        )
         KulhadButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 16.dp),
             text = "Save change",
             onClick = {
                 val type = if (typeStr == "Piece worker") WorkerType.PIECE else WorkerType.SALARY
