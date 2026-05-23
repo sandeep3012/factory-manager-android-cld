@@ -15,12 +15,8 @@ app/release/
 
 # Local configuration
 local.properties
-keystore.properties
 
-# Android signing files (never commit)
-*.jks
-*.keystore
-# Release signing — NEVER commit these
+# Android signing files/Release signing — NEVER commit these
 keystore.properties
 *.jks
 *.keystore
@@ -40,17 +36,6 @@ ktlint/
 
 # Logs
 *.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Generated profile files
-*.dm
-
-# APK / App Bundles
-*.apk
-*.aab
 
 # Optional generated project files
 project-structure.txt
