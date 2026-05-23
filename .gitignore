@@ -7,6 +7,11 @@
 build/
 */build/
 app/release/
+*.apk
+*.aab
+
+# Generated profile files
+*.dm
 
 # Local configuration
 local.properties
@@ -15,6 +20,14 @@ keystore.properties
 # Android signing files (never commit)
 *.jks
 *.keystore
+# Release signing — NEVER commit these
+keystore.properties
+*.jks
+*.keystore
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Native build
 .externalNativeBuild/
