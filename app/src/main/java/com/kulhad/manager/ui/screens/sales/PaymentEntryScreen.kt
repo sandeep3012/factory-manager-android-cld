@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +42,7 @@ import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
 import com.kulhad.manager.ui.theme.OverlayWhite07
+import com.kulhad.manager.ui.theme.PrimaryBlue
 import com.kulhad.manager.ui.theme.Success
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextPrimary
@@ -51,10 +54,39 @@ fun PaymentEntryScreen(
     onBack: () -> Unit,
     viewModel: SalesViewModel = hiltViewModel()
 ) {
-    val detail by viewModel.observeSaleDetail(saleId).collectAsStateWithLifecycle(null)
+    val detail       by viewModel.observeSaleDetail(saleId).collectAsStateWithLifecycle(null)
+    val paymentError by viewModel.paymentError.collectAsStateWithLifecycle()
     var amount by remember { mutableStateOf("") }
     var remark by remember { mutableStateOf("") }
     val date = DateUtils.todayStart()
+
+    // ── Overpayment error dialog ─────────────────────────────────────────────
+    paymentError?.let { errorMessage ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearPaymentError() },
+            title = {
+                Text(
+                    text = "Cannot Collect Payment",
+                    color = TextPrimary,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.W500
+                )
+            },
+            text = {
+                Text(
+                    text = errorMessage,
+                    color = TextSecondary,
+                    fontSize = 17.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearPaymentError() }) {
+                    Text(text = "OK", color = PrimaryBlue, fontSize = 17.sp)
+                }
+            },
+            containerColor = SurfaceCard
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(

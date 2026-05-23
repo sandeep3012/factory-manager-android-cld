@@ -17,6 +17,8 @@ import com.kulhad.manager.domain.model.Payment
 import com.kulhad.manager.domain.model.Sale
 import com.kulhad.manager.domain.model.SaleDetail
 import com.kulhad.manager.domain.model.SaleItem
+import com.kulhad.manager.domain.model.InsufficientStockException
+import com.kulhad.manager.domain.model.OverpaymentException
 import com.kulhad.manager.domain.model.SaleItemDraft
 import com.kulhad.manager.domain.model.SaleStatus
 import com.kulhad.manager.domain.model.SaleSummary
@@ -38,18 +40,46 @@ class SaleRepository @Inject constructor(
 
     /**
      * Atomically:
-     * 1. Insert Sale.
-     * 2. Insert each SaleItem.
-     * 3. Insert one StockLedger row (-qty, SALE) per item.
+     * 1. Validate stock for every item — throws [InsufficientStockException] if any item
+     *    exceeds available stock. The whole transaction is rolled back automatically.
+     * 2. Insert Sale.
+     * 3. Insert each SaleItem.
+     * 4. Insert one StockLedger row (-qty, SALE) per item.
+     *
+     * For edit-sale use cases, pass [previousQuantities] as a map of productId → old quantity.
+     * Validation then only checks the *additional* stock needed (newQty - oldQty), so reducing
+     * a line item never triggers a false rejection.
      */
     suspend fun createSale(
         customerName: String,
         date: Long,
         items: List<SaleItemDraft>,
-        userId: Long
+        userId: Long,
+        previousQuantities: Map<Long, Int> = emptyMap()
     ): Long = database.withTransaction {
         require(items.isNotEmpty()) { "Sale must have at least one item" }
-        val total = items.sumOf { it.total }
+
+        // ── Stock validation ─────────────────────────────────────────────────
+        // Aggregate total requested quantity per product (handles duplicate size rows).
+        val requestedByProduct: Map<Long, Int> = items
+            .groupBy { it.productId }
+            .mapValues { (_, drafts) -> drafts.sumOf { it.quantity } }
+
+        requestedByProduct.forEach { (productId, totalRequested) ->
+            val previousQty = previousQuantities[productId] ?: 0
+            val extraNeeded  = totalRequested - previousQty   // ≤ 0 means a reduction — always safe
+            if (extraNeeded > 0) {
+                val available = stockLedgerDao.getCurrentStock(productId)
+                if (extraNeeded > available) {
+                    val product     = productDao.findById(productId)
+                    val productName = if (product != null) "${product.sizeMl}ml" else "product #$productId"
+                    throw InsufficientStockException(productName, available, extraNeeded)
+                }
+            }
+        }
+        // ── End validation — nothing has been written yet ────────────────────
+
+        val total  = items.sumOf { it.total }
         val saleId = saleDao.insert(
             SaleEntity(
                 customerName = customerName,
@@ -83,16 +113,41 @@ class SaleRepository @Inject constructor(
         saleId
     }
 
+    /**
+     * Atomically:
+     * 1. Validate that [amount] does not exceed the remaining pending balance.
+     *    Throws [OverpaymentException] (rolling back the transaction) if it does.
+     * 2. Insert the Payment row.
+     *
+     * Pending is always derived — never stored — consistent with the project's rule that
+     * payment state = total - SUM(payments.amount).
+     */
     suspend fun addPayment(saleId: Long, amount: Int, date: Long, remark: String) {
         require(amount > 0) { "Payment amount must be positive" }
-        paymentDao.insert(
-            PaymentEntity(
-                saleId = saleId,
-                amount = amount,
-                date = DateUtils.startOfDay(date),
-                remark = remark
+        database.withTransaction {
+            val sale = saleDao.findById(saleId)
+                ?: error("Sale $saleId not found")
+            val alreadyPaid = paymentDao.paidForSale(saleId)
+            val pending     = (sale.totalAmount - alreadyPaid).coerceAtLeast(0)
+
+            if (amount > pending) {
+                throw OverpaymentException(
+                    total     = sale.totalAmount,
+                    paid      = alreadyPaid,
+                    pending   = pending,
+                    attempted = amount
+                )
+            }
+            // ── Validation passed — nothing written yet ──────────────────────
+            paymentDao.insert(
+                PaymentEntity(
+                    saleId = saleId,
+                    amount = amount,
+                    date   = DateUtils.startOfDay(date),
+                    remark = remark
+                )
             )
-        )
+        }
     }
 
     fun observeAllSales(): Flow<List<Sale>> =

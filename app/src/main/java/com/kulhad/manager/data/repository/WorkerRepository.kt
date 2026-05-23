@@ -106,19 +106,70 @@ class WorkerRepository @Inject constructor(
         id
     }
 
+    /**
+     * Updates only the profile fields (name, phone, address, joiningDate, isActive).
+     * [Worker.currentType] and [Worker.dailyRate] are intentionally ignored — changes
+     * to those MUST go through [changeType] or [saveWorkerEdit] so that a
+     * [WorkerTypeHistoryEntity] row is always recorded.
+     */
     suspend fun updateWorker(worker: Worker) {
-        workerDao.update(
-            WorkerEntity(
-                id = worker.id,
-                name = worker.name,
-                phone = worker.phone,
-                address = worker.address,
-                joiningDate = worker.joiningDate,
-                currentType = worker.currentType.name,
-                dailyRate = worker.dailyRate,
-                isActive = worker.isActive
-            )
+        workerDao.updateProfile(
+            id          = worker.id,
+            name        = worker.name,
+            phone       = worker.phone,
+            address     = worker.address,
+            joiningDate = worker.joiningDate,
+            isActive    = worker.isActive
         )
+    }
+
+    /**
+     * Atomically handles a full worker edit (from AddWorkerScreen).
+     *
+     * 1. Reads the current DB state so we can compare type/rate.
+     * 2. Updates profile fields (name, phone, address, joiningDate) via [updateProfile]
+     *    — this path structurally cannot touch current_type or daily_rate.
+     * 3. If [newType] or [newDailyRate] differ from the stored values:
+     *    - Updates current_type / daily_rate on the worker row.
+     *    - Inserts a [WorkerTypeHistoryEntity] row.
+     *    Steps 2–3 are in a single [withTransaction], so either both commit or
+     *    neither does — the worker cache and history table are always consistent.
+     */
+    suspend fun saveWorkerEdit(
+        workerId    : Long,
+        name        : String,
+        phone       : String,
+        address     : String,
+        joiningDate : Long,
+        newType     : WorkerType,
+        newDailyRate: Int
+    ) = database.withTransaction {
+        val current = workerDao.findById(workerId)
+            ?: error("Worker $workerId not found")
+
+        // Profile-only update — type/rate columns are NOT touched.
+        workerDao.updateProfile(
+            id          = workerId,
+            name        = name,
+            phone       = phone,
+            address     = address,
+            joiningDate = joiningDate,
+            isActive    = current.isActive  // deactivation is a separate explicit operation
+        )
+
+        // Conditionally update type/rate + append history row.
+        val resolvedRate = if (newType == WorkerType.SALARY) newDailyRate else 0
+        if (current.currentType != newType.name || current.dailyRate != resolvedRate) {
+            workerDao.updateTypeAndRate(workerId, newType.name, resolvedRate)
+            typeHistoryDao.insert(
+                WorkerTypeHistoryEntity(
+                    workerId      = workerId,
+                    workerType    = newType.name,
+                    dailyRate     = resolvedRate,
+                    effectiveFrom = DateUtils.todayStart()
+                )
+            )
+        }
     }
 
     suspend fun changeType(workerId: Long, newType: WorkerType, dailyRate: Int, effectiveFrom: Long) {

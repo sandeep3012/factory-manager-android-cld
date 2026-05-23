@@ -39,4 +39,26 @@ interface WorkerDao {
 
     @Query("UPDATE workers SET is_active = :active WHERE id = :id")
     suspend fun setActive(id: Long, active: Boolean)
+
+    /**
+     * Updates only profile fields (name, phone, address, joining_date, is_active).
+     * current_type and daily_rate are intentionally excluded — callers MUST use
+     * [updateTypeAndRate] (inside a transaction that also inserts a history row)
+     * to change worker type or rate. This makes it structurally impossible for
+     * a plain profile edit to bypass history tracking.
+     */
+    @Query("""
+        UPDATE workers
+        SET name = :name, phone = :phone, address = :address,
+            joining_date = :joiningDate, is_active = :isActive
+        WHERE id = :id
+    """)
+    suspend fun updateProfile(
+        id: Long,
+        name: String,
+        phone: String,
+        address: String,
+        joiningDate: Long,
+        isActive: Boolean
+    )
 }
