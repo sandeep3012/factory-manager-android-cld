@@ -6,9 +6,20 @@
 .gradle/
 build/
 */build/
+app/release/
+*.apk
+*.aab
+
+# Generated profile files
+*.dm
 
 # Local config
 local.properties
+
+# Release signing — NEVER commit these
+keystore.properties
+*.jks
+*.keystore
 
 # OS files
 .DS_Store
