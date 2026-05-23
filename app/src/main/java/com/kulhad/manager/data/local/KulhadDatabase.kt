@@ -35,6 +35,7 @@ import com.kulhad.manager.data.local.entity.UserEntity
 import com.kulhad.manager.data.local.entity.WorkerAdvanceEntity
 import com.kulhad.manager.data.local.entity.WorkerEntity
 import com.kulhad.manager.data.local.entity.WorkerTypeHistoryEntity
+import com.kulhad.manager.data.local.migration.Migrations
 import com.kulhad.manager.data.util.PasswordHasher
 
 @Database(
@@ -55,7 +56,7 @@ import com.kulhad.manager.data.util.PasswordHasher
         WorkerAdvanceEntity::class
     ],
     version = 1,
-    exportSchema = false
+    exportSchema = true  // writes app/schemas/…/1.json — commit this file to git
 )
 @TypeConverters(Converters::class)
 abstract class KulhadDatabase : RoomDatabase() {
@@ -94,7 +95,11 @@ abstract class KulhadDatabase : RoomDatabase() {
             DB_NAME
         )
             .addCallback(SeedCallback)
-            .fallbackToDestructiveMigration()
+            // Safe migration: explicit migrations only.
+            // If the schema version is bumped without a matching Migration object,
+            // Room throws IllegalStateException at startup — a deliberate crash that
+            // prevents silent data loss. Add new migrations to Migrations.ALL first.
+            .addMigrations(*Migrations.ALL)
             .build()
     }
 

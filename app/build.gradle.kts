@@ -71,6 +71,16 @@ android {
     }
 }
 
+// ── Room schema export ─────────────────────────────────────────────────────────
+// Tells KSP (and Room's annotation processor) where to write the schema JSON files.
+// These files are version-controlled and used by Room at build time to verify that
+// every migration correctly transforms one schema version into the next.
+// After the first build with exportSchema = true, commit the generated
+// app/schemas/com.kulhad.manager.data.local.KulhadDatabase/1.json to git.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
