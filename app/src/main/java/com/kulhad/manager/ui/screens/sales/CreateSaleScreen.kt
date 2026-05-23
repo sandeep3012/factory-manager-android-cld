@@ -16,11 +16,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
@@ -62,6 +64,7 @@ fun CreateSaleScreen(
     viewModel: SalesViewModel = hiltViewModel()
 ) {
     val products by viewModel.products.collectAsStateWithLifecycle()
+    val saleError by viewModel.saleError.collectAsStateWithLifecycle()
     var customerName by remember { mutableStateOf("") }
     val date = DateUtils.todayStart()
     val items = remember { mutableStateListOf<SaleItemDraft>() }
@@ -166,6 +169,34 @@ fun CreateSaleScreen(
                 )
             }
         }
+    }
+
+    // ── Insufficient-stock error dialog ──────────────────────────────────────
+    saleError?.let { errorMessage ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearSaleError() },
+            title = {
+                Text(
+                    text = "Cannot Save Sale",
+                    color = TextPrimary,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.W500
+                )
+            },
+            text = {
+                Text(
+                    text = errorMessage,
+                    color = TextSecondary,
+                    fontSize = 17.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearSaleError() }) {
+                    Text(text = "OK", color = PrimaryBlue, fontSize = 17.sp)
+                }
+            },
+            containerColor = SurfaceCard
+        )
     }
 
     if (showSheet) {

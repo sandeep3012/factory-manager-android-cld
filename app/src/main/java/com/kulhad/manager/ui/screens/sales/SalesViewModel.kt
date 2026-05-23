@@ -6,14 +6,17 @@ import com.kulhad.manager.data.repository.SaleRepository
 import com.kulhad.manager.data.repository.StockRepository
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.di.SessionManager
+import com.kulhad.manager.domain.model.InsufficientStockException
 import com.kulhad.manager.domain.model.Product
 import com.kulhad.manager.domain.model.SaleDetail
 import com.kulhad.manager.domain.model.SaleItemDraft
 import com.kulhad.manager.domain.model.SaleSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -86,6 +89,13 @@ class SalesViewModel @Inject constructor(
     /** Returns current stock for a single product. */
     fun observeStockFor(productId: Long) = stockRepository.observeStockForProduct(productId)
 
+    // ── Sale error state ─────────────────────────────────────────────────────
+    /** Non-null when a sale failed due to insufficient stock. Cleared by [clearSaleError]. */
+    private val _saleError = MutableStateFlow<String?>(null)
+    val saleError: StateFlow<String?> = _saleError.asStateFlow()
+
+    fun clearSaleError() { _saleError.value = null }
+
     fun createSale(
         customerName: String,
         date: Long,
@@ -101,7 +111,13 @@ class SalesViewModel @Inject constructor(
                     userId = sessionManager.currentUserId
                 )
                 onDone(id)
-            } catch (_: Exception) {}
+            } catch (e: InsufficientStockException) {
+                _saleError.value =
+                    "Insufficient stock for ${e.productName}\n\nAvailable: ${e.available}\nRequested: ${e.requested}"
+            } catch (_: Exception) {
+                // Other unexpected errors (DB failure etc.) are silently swallowed —
+                // add logging here if needed.
+            }
         }
     }
 
