@@ -2,17 +2,19 @@
 .idea/
 *.iml
 
-# Gradle
+# Gradle / Build outputs
 .gradle/
 build/
 */build/
+app/release/
 
-# Local config
+# Local configuration
 local.properties
+keystore.properties
 
-# OS files
-.DS_Store
-Thumbs.db
+# Android signing files (never commit)
+*.jks
+*.keystore
 
 # Native build
 .externalNativeBuild/
@@ -20,8 +22,23 @@ Thumbs.db
 # Captures
 captures/
 
-# Kotlin
+# Kotlin / tooling
 ktlint/
 
 # Logs
 *.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated profile files
+*.dm
+
+# APK / App Bundles
+*.apk
+*.aab
+
+# Optional generated project files
+project-structure.txt
+source-structure.txt

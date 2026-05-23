@@ -14,7 +14,7 @@ package com.kulhad.manager.ui.preview
 object UiDemoData {
 
     /** Set to false to disable all demo data overlays globally. */
-    const val SHOW_DEMO = true
+    const val SHOW_DEMO = false
 
     // ─── Dashboard ─────────────────────────────────────────────────────────
 
