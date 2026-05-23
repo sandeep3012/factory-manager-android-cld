@@ -15,3 +15,21 @@ class InsufficientStockException(
 ) : Exception(
     "Insufficient stock for $productName. Available: $available, Requested: $requested"
 )
+
+/**
+ * Thrown inside a Room withTransaction when a payment amount would push the total paid
+ * above the sale total. The transaction rolls back automatically — no Payment row is created.
+ *
+ * [total]     — sale.totalAmount
+ * [paid]      — sum of all existing payments for this sale before this attempt
+ * [pending]   — total - paid (the maximum allowed payment)
+ * [attempted] — the amount the user tried to save
+ */
+class OverpaymentException(
+    val total: Int,
+    val paid: Int,
+    val pending: Int,
+    val attempted: Int
+) : Exception(
+    "Payment of $attempted exceeds pending amount $pending (total=$total, paid=$paid)"
+)

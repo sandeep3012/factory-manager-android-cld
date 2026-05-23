@@ -6,7 +6,9 @@ import com.kulhad.manager.data.repository.SaleRepository
 import com.kulhad.manager.data.repository.StockRepository
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.di.SessionManager
+import com.kulhad.manager.data.util.Money
 import com.kulhad.manager.domain.model.InsufficientStockException
+import com.kulhad.manager.domain.model.OverpaymentException
 import com.kulhad.manager.domain.model.Product
 import com.kulhad.manager.domain.model.SaleDetail
 import com.kulhad.manager.domain.model.SaleItemDraft
@@ -121,6 +123,13 @@ class SalesViewModel @Inject constructor(
         }
     }
 
+    // ── Payment error state ──────────────────────────────────────────────────
+    /** Non-null when a payment was rejected due to overpayment. Cleared by [clearPaymentError]. */
+    private val _paymentError = MutableStateFlow<String?>(null)
+    val paymentError: StateFlow<String?> = _paymentError.asStateFlow()
+
+    fun clearPaymentError() { _paymentError.value = null }
+
     fun addPayment(
         saleId: Long,
         amount: Int,
@@ -132,7 +141,18 @@ class SalesViewModel @Inject constructor(
             try {
                 saleRepository.addPayment(saleId, amount, date, remark)
                 onDone()
-            } catch (_: Exception) {}
+            } catch (e: OverpaymentException) {
+                _paymentError.value = buildString {
+                    appendLine("Cannot collect payment")
+                    appendLine()
+                    appendLine("Sale Total:    ${Money.formatRupees(e.total)}")
+                    appendLine("Already Paid:  ${Money.formatRupees(e.paid)}")
+                    appendLine("Pending:       ${Money.formatRupees(e.pending)}")
+                    append(    "Attempted:     ${Money.formatRupees(e.attempted)}")
+                }
+            } catch (_: Exception) {
+                // Other unexpected errors (DB failure etc.) are silently swallowed.
+            }
         }
     }
 }

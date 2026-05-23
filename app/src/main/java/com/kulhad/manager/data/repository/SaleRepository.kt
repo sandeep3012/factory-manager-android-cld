@@ -18,6 +18,7 @@ import com.kulhad.manager.domain.model.Sale
 import com.kulhad.manager.domain.model.SaleDetail
 import com.kulhad.manager.domain.model.SaleItem
 import com.kulhad.manager.domain.model.InsufficientStockException
+import com.kulhad.manager.domain.model.OverpaymentException
 import com.kulhad.manager.domain.model.SaleItemDraft
 import com.kulhad.manager.domain.model.SaleStatus
 import com.kulhad.manager.domain.model.SaleSummary
@@ -112,16 +113,41 @@ class SaleRepository @Inject constructor(
         saleId
     }
 
+    /**
+     * Atomically:
+     * 1. Validate that [amount] does not exceed the remaining pending balance.
+     *    Throws [OverpaymentException] (rolling back the transaction) if it does.
+     * 2. Insert the Payment row.
+     *
+     * Pending is always derived — never stored — consistent with the project's rule that
+     * payment state = total - SUM(payments.amount).
+     */
     suspend fun addPayment(saleId: Long, amount: Int, date: Long, remark: String) {
         require(amount > 0) { "Payment amount must be positive" }
-        paymentDao.insert(
-            PaymentEntity(
-                saleId = saleId,
-                amount = amount,
-                date = DateUtils.startOfDay(date),
-                remark = remark
+        database.withTransaction {
+            val sale = saleDao.findById(saleId)
+                ?: error("Sale $saleId not found")
+            val alreadyPaid = paymentDao.paidForSale(saleId)
+            val pending     = (sale.totalAmount - alreadyPaid).coerceAtLeast(0)
+
+            if (amount > pending) {
+                throw OverpaymentException(
+                    total     = sale.totalAmount,
+                    paid      = alreadyPaid,
+                    pending   = pending,
+                    attempted = amount
+                )
+            }
+            // ── Validation passed — nothing written yet ──────────────────────
+            paymentDao.insert(
+                PaymentEntity(
+                    saleId = saleId,
+                    amount = amount,
+                    date   = DateUtils.startOfDay(date),
+                    remark = remark
+                )
             )
-        )
+        }
     }
 
     fun observeAllSales(): Flow<List<Sale>> =
