@@ -75,24 +75,18 @@ class WorkerViewModel @Inject constructor(
                 if (existingId == null) {
                     repository.saveNewWorker(name, phone, address, joiningDate, type, dailyRate)
                 } else {
-                    val current = repository.getWorker(existingId) ?: return@launch
-                    val updated = current.copy(
-                        name = name,
-                        phone = phone,
-                        address = address,
-                        joiningDate = joiningDate,
-                        currentType = type,
-                        dailyRate = if (type == WorkerType.SALARY) dailyRate else 0
+                    // Single atomic call: profile update + conditional type/history change
+                    // in one withTransaction. It is now structurally impossible for this
+                    // path to update currentType/dailyRate without creating a history row.
+                    repository.saveWorkerEdit(
+                        workerId     = existingId,
+                        name         = name,
+                        phone        = phone,
+                        address      = address,
+                        joiningDate  = joiningDate,
+                        newType      = type,
+                        newDailyRate = dailyRate
                     )
-                    repository.updateWorker(updated)
-                    if (current.currentType != type || current.dailyRate != updated.dailyRate) {
-                        repository.changeType(
-                            workerId = existingId,
-                            newType = type,
-                            dailyRate = dailyRate,
-                            effectiveFrom = DateUtils.todayStart()
-                        )
-                    }
                 }
                 onDone()
             } catch (_: Exception) { /* keep UI on form */ }
