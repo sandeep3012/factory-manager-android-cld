@@ -33,13 +33,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.Money
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.components.SizePillGrid
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
 import com.kulhad.manager.ui.theme.OverlayWhite07
@@ -57,11 +57,11 @@ fun AddProductionScreen(
 ) {
     val workers by viewModel.activeWorkers.collectAsStateWithLifecycle()
     val products by viewModel.productsWithRates.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
     var workerId by remember { mutableStateOf<Long?>(null) }
     var sizeMl by remember { mutableStateOf<Int?>(null) }
     var qty by remember { mutableStateOf("") }
     var defective by remember { mutableStateOf("0") }
-    val date = DateUtils.todayStart()
     var rate by remember { mutableStateOf(0.0) }
 
     LaunchedEffect(workers) {
@@ -174,9 +174,9 @@ fun AddProductionScreen(
                 )
             }
             item {
-                Text(
-                    text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary, fontSize = 17.sp
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
                 )
             }
 
@@ -222,7 +222,7 @@ fun AddProductionScreen(
                         val pid = products.firstOrNull { it.product.sizeMl == sizeMl }?.product?.id
                             ?: return@KulhadButton
                         val wid = workerId ?: return@KulhadButton
-                        viewModel.saveEntry(wid, pid, qtyInt, defInt, date) { onBack() }
+                        viewModel.saveEntry(wid, pid, qtyInt, defInt) { onBack() }
                     }
                 )
             }

@@ -39,6 +39,7 @@ import com.kulhad.manager.ui.components.KulhadButtonStyle
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
 import com.kulhad.manager.ui.theme.OverlayWhite07
@@ -56,9 +57,9 @@ fun PaymentEntryScreen(
 ) {
     val detail       by viewModel.observeSaleDetail(saleId).collectAsStateWithLifecycle(null)
     val paymentError by viewModel.paymentError.collectAsStateWithLifecycle()
+    val workingDate  by viewModel.workingDate.collectAsStateWithLifecycle()
     var amount by remember { mutableStateOf("") }
     var remark by remember { mutableStateOf("") }
-    val date = DateUtils.todayStart()
 
     // ── Overpayment error dialog ─────────────────────────────────────────────
     paymentError?.let { errorMessage ->
@@ -166,10 +167,11 @@ fun PaymentEntryScreen(
                     onValueChange = { remark = it }
                 )
             }
+            // Working date chip — date is read from WorkingDateManager inside addPayment()
             item {
-                Text(
-                    text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary, fontSize = 12.sp
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
                 )
             }
             item {
@@ -179,7 +181,7 @@ fun PaymentEntryScreen(
                     enabled = (amount.toIntOrNull() ?: 0) > 0,
                     onClick = {
                         val amt = amount.toIntOrNull() ?: return@KulhadButton
-                        viewModel.addPayment(saleId, amt, date, remark) {
+                        viewModel.addPayment(saleId, amt, remark) {
                             amount = ""
                             remark = ""
                         }

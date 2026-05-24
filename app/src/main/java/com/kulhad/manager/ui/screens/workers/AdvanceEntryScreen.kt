@@ -39,6 +39,7 @@ import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
 import com.kulhad.manager.ui.theme.OverlayWhite07
@@ -54,10 +55,10 @@ fun AdvanceEntryScreen(
     viewModel: WorkerViewModel = hiltViewModel()
 ) {
     val workers by viewModel.activeWorkers.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
     var selectedId by remember { mutableStateOf(initialWorkerId) }
     var amount by remember { mutableStateOf("") }
     var remark by remember { mutableStateOf("") }
-    val date = DateUtils.todayStart()
 
     val effectiveId = selectedId ?: workers.firstOrNull()?.id
     val advances by (effectiveId?.let { viewModel.observeAdvances(it) }
@@ -156,10 +157,11 @@ fun AdvanceEntryScreen(
                     onValueChange = { remark = it }
                 )
             }
+            // Working date chip — date is read from WorkingDateManager inside saveAdvance()
             item {
-                Text(
-                    text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary, fontSize = 14.sp
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
                 )
             }
             item {
@@ -168,7 +170,7 @@ fun AdvanceEntryScreen(
                     onClick = {
                         val amt = amount.toIntOrNull() ?: return@KulhadButton
                         if (amt <= 0 || effectiveId == null) return@KulhadButton
-                        viewModel.saveAdvance(effectiveId, amt, date, remark) {
+                        viewModel.saveAdvance(effectiveId, amt, remark) {
                             amount = ""
                             remark = ""
                         }

@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.util.DateUtils
+import java.time.ZoneId
 import com.kulhad.manager.ui.charts.SimpleLineChart
 import com.kulhad.manager.ui.components.BadgeType
 import com.kulhad.manager.ui.components.KpiStrip
@@ -39,6 +40,7 @@ import com.kulhad.manager.ui.components.KulhadButtonStyle
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.StatusBadge
 import com.kulhad.manager.ui.components.WorkerAvatar
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
@@ -60,6 +62,7 @@ fun AttendanceScreen(
     val absent by viewModel.attendanceAbsentToday.collectAsStateWithLifecycle()
     val trend by viewModel.attendanceTrend.collectAsStateWithLifecycle()
     val saved by viewModel.attendanceTodayMap.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
 
     val checked = remember { mutableStateMapOf<Long, Boolean>() }
 
@@ -85,13 +88,23 @@ fun AttendanceScreen(
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
             title = "Attendance",
-            subtitle = DateUtils.formatDay(System.currentTimeMillis()),
+            subtitle = DateUtils.formatDay(
+                workingDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            ),
             onBack = onBack
         )
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Working date chip — tap to change the global working date
+            item {
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
+                )
+            }
+
             // Trend chart
             item {
                 Column(

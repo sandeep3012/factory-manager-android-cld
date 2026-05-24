@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.repository.WorkerRepository
 import com.kulhad.manager.data.util.DateUtils
+import com.kulhad.manager.di.WorkingDateManager
 import com.kulhad.manager.domain.model.Worker
 import com.kulhad.manager.domain.model.WorkerAdvanceRecord
 import com.kulhad.manager.domain.model.WorkerTypeChange
 import com.kulhad.manager.domain.model.WorkerWithAttendance
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,8 +33,20 @@ data class WorkerListData(
 
 @HiltViewModel
 class WorkerViewModel @Inject constructor(
-    private val repository: WorkerRepository
+    private val repository: WorkerRepository,
+    private val workingDateManager: WorkingDateManager
 ) : ViewModel() {
+
+    // ── Global working date ──────────────────────────────────────────────────
+    /**
+     * The process-scoped working date from [WorkingDateManager].
+     * Delegates the same StateFlow — no state is duplicated.
+     * Attendance saves and advance inserts use [workingDateManager.currentEpochMilli] internally.
+     */
+    val workingDate: StateFlow<LocalDate> = workingDateManager.currentWorkingDate
+
+    /** Forwards date selection to [WorkingDateManager]; future dates are silently rejected. */
+    fun setWorkingDate(date: LocalDate) = workingDateManager.setWorkingDate(date)
 
     private val _filter = MutableStateFlow(WorkerFilter.ALL)
     val filter: StateFlow<WorkerFilter> = _filter.asStateFlow()
@@ -132,7 +146,7 @@ class WorkerViewModel @Inject constructor(
     fun saveAttendance(presence: Map<Long, Boolean>, onDone: () -> Unit) {
         viewModelScope.launch {
             try {
-                repository.saveAttendanceBatch(DateUtils.todayStart(), presence)
+                repository.saveAttendanceBatch(workingDateManager.currentEpochMilli(), presence)
                 onDone()
             } catch (_: Exception) {}
         }
@@ -149,13 +163,12 @@ class WorkerViewModel @Inject constructor(
     fun saveAdvance(
         workerId: Long,
         amount: Int,
-        date: Long,
         remark: String,
         onDone: () -> Unit
     ) {
         viewModelScope.launch {
             try {
-                repository.saveAdvance(workerId, amount, date, remark)
+                repository.saveAdvance(workerId, amount, workingDateManager.currentEpochMilli(), remark)
                 onDone()
             } catch (_: Exception) {}
         }

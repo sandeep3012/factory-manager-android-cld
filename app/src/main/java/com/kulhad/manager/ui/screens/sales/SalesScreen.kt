@@ -43,6 +43,7 @@ import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SaleRowItem
 import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.components.StatusBadge
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
@@ -63,6 +64,7 @@ fun SalesScreen(
     viewModel: SalesViewModel = hiltViewModel()
 ) {
     val data by viewModel.tabData.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
 
     // Demo overlay
     val useDemo = UiDemoData.SHOW_DEMO && data.weekTotal == 0 && data.recent.isEmpty()
@@ -89,6 +91,14 @@ fun SalesScreen(
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Working date chip — tap to change the global working date
+            item {
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
+                )
+            }
+
             // Line chart (matches HTML screen 7)
             item {
                 Column(

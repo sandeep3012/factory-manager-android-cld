@@ -6,11 +6,13 @@ import com.kulhad.manager.data.repository.ProductionRepository
 import com.kulhad.manager.data.repository.WorkerRepository
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.di.SessionManager
+import com.kulhad.manager.di.WorkingDateManager
 import com.kulhad.manager.domain.model.Product
 import com.kulhad.manager.domain.model.ProductWithRate
 import com.kulhad.manager.domain.model.ProductionEntry
 import com.kulhad.manager.domain.model.Worker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,8 +36,20 @@ data class ProductionStats(
 class ProductionViewModel @Inject constructor(
     private val productionRepository: ProductionRepository,
     private val workerRepository: WorkerRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val workingDateManager: WorkingDateManager
 ) : ViewModel() {
+
+    // ── Global working date ──────────────────────────────────────────────────
+    /**
+     * The process-scoped working date from [WorkingDateManager].
+     * Delegates the same StateFlow — no state is duplicated.
+     * Production entry saves use [workingDateManager.currentEpochMilli] internally.
+     */
+    val workingDate: StateFlow<LocalDate> = workingDateManager.currentWorkingDate
+
+    /** Forwards date selection to [WorkingDateManager]; future dates are silently rejected. */
+    fun setWorkingDate(date: LocalDate) = workingDateManager.setWorkingDate(date)
 
     val activeWorkers: StateFlow<List<Worker>> = workerRepository.observeActiveWorkers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -94,7 +108,6 @@ class ProductionViewModel @Inject constructor(
         productId: Long,
         quantity: Int,
         defective: Int,
-        date: Long,
         onDone: (Long) -> Unit
     ) {
         viewModelScope.launch {
@@ -104,7 +117,7 @@ class ProductionViewModel @Inject constructor(
                     productId = productId,
                     quantity = quantity,
                     defective = defective,
-                    date = date,
+                    date = workingDateManager.currentEpochMilli(),
                     userId = sessionManager.currentUserId
                 )
                 onDone(id)
