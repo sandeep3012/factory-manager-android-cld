@@ -47,6 +47,34 @@ interface AttendanceDao {
             "AND date BETWEEN :from AND :to AND is_present = 1"
     )
     suspend fun countPresentInRange(workerId: Long, from: Long, to: Long): Int
+
+    /**
+     * Returns all attendance rows for a given [date], optionally filtered to a single worker.
+     *
+     * When [workerId] is null, the `:workerId IS NULL` clause evaluates to TRUE and all
+     * rows for that date are returned. Room 2.6+ binds Kotlin `Long?` as SQL NULL correctly.
+     */
+    @Query("""
+        SELECT * FROM attendance
+        WHERE date = :date
+        AND (:workerId IS NULL OR worker_id = :workerId)
+        ORDER BY worker_id
+    """)
+    fun observeAttendanceHistory(date: Long, workerId: Long?): Flow<List<AttendanceEntity>>
+
+    /**
+     * Updates the [isPresent] flag on an existing attendance row.
+     *
+     * Uses a targeted UPDATE — never inserts — so duplicate rows are structurally impossible.
+     * If no matching row exists, the UPDATE is a no-op (zero rows affected).
+     */
+    @Query("""
+        UPDATE attendance
+        SET is_present = :isPresent
+        WHERE worker_id = :workerId
+        AND date = :date
+    """)
+    suspend fun updateAttendance(workerId: Long, date: Long, isPresent: Boolean)
 }
 
 data class DailyAttendanceCount(

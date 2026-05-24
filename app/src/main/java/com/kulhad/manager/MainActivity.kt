@@ -41,6 +41,7 @@ import com.kulhad.manager.ui.screens.stock.StockLedgerScreen
 import com.kulhad.manager.ui.screens.stock.StockScreen
 import com.kulhad.manager.ui.screens.workers.AddWorkerScreen
 import com.kulhad.manager.ui.screens.workers.AdvanceEntryScreen
+import com.kulhad.manager.ui.screens.workers.AttendanceHistoryScreen
 import com.kulhad.manager.ui.screens.workers.AttendanceScreen
 import com.kulhad.manager.ui.screens.workers.WorkerListScreen
 import com.kulhad.manager.ui.screens.workers.WorkerTypeHistoryScreen
@@ -152,7 +153,14 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable(Routes.ATTENDANCE) {
-                                AttendanceScreen(onBack = { navController.popBackStack() })
+                                AttendanceScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onHistory = { navController.navigate(Routes.ATTENDANCE_HISTORY) }
+                                )
+                            }
+
+                            composable(Routes.ATTENDANCE_HISTORY) {
+                                AttendanceHistoryScreen(onBack = { navController.popBackStack() })
                             }
 
                             composable(

@@ -33,3 +33,10 @@ data class WorkerAdvanceRecord(
     val date: Long,
     val remark: String
 )
+
+/** Thin domain wrapper for a single attendance row, used by history queries. */
+data class AttendanceRecord(
+    val workerId: Long,
+    val date: Long,
+    val isPresent: Boolean
+)

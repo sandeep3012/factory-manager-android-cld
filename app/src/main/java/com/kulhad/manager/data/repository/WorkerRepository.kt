@@ -15,6 +15,7 @@ import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.local.entity.WorkerTypeHistoryEntity
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.PasswordHasher
+import com.kulhad.manager.domain.model.AttendanceRecord
 import com.kulhad.manager.domain.model.Worker
 import com.kulhad.manager.domain.model.WorkerAdvanceRecord
 import com.kulhad.manager.domain.model.WorkerTypeChange
@@ -248,6 +249,26 @@ class WorkerRepository @Inject constructor(
             val byDay = rows.associate { it.day to it.presentCount }
             starts.map { it to (byDay[it] ?: 0) }
         }
+    }
+
+    /**
+     * Returns a reactive list of attendance records for [date], optionally scoped to one worker.
+     *
+     * Pass [workerId] = null to get all workers' records for that date.
+     * [date] is normalized to start-of-day before querying so timezone mismatches don't
+     * produce empty results.
+     */
+    fun observeAttendanceHistory(date: Long, workerId: Long?): Flow<List<AttendanceRecord>> =
+        attendanceDao.observeAttendanceHistory(DateUtils.startOfDay(date), workerId)
+            .map { rows -> rows.map { AttendanceRecord(it.workerId, it.date, it.isPresent) } }
+
+    /**
+     * Updates the presence flag on an existing attendance row (edit-only, never inserts).
+     *
+     * If no row exists for (workerId, date), the underlying UPDATE is a safe no-op.
+     */
+    suspend fun editAttendance(workerId: Long, date: Long, isPresent: Boolean) {
+        attendanceDao.updateAttendance(workerId, DateUtils.startOfDay(date), isPresent)
     }
 
     /** Mark a worker as present for a date if no row exists. Used by production entries. */
