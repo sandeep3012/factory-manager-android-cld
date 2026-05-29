@@ -7,12 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * Central registry of all Room database schema migrations for Kulhad Manager.
  *
  * ─── Current state ──────────────────────────────────────────────────────────────
- * Version: 1  (initial baseline — no migrations exist yet)
- *
- * The app has not had a schema-changing release, so the ALL array is empty.
- * Room generates app/schemas/com.kulhad.manager.data.local.KulhadDatabase/1.json
- * the first time the app is built with exportSchema = true. Commit that file to git
- * so future migrations can be verified against it at build time.
+ * Version: 2
  *
  * ─── v1 schema — 14 tables ──────────────────────────────────────────────────────
  *
@@ -33,6 +28,15 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  expense_types      id, name, is_active
  *  expenses           id, expense_type_id, amount, date, remark, added_by
  *  worker_advances    id, worker_id, amount, date, remark
+ *
+ * ─── v2 additions (MIGRATION_1_2) ───────────────────────────────────────────────
+ *
+ *  attendance, worker_advances, payments, production_entries, sales,
+ *  worker_type_history, stock_ledger each gain:
+ *    audit_created_by  TEXT NOT NULL DEFAULT 'System'
+ *    audit_created_at  INTEGER NOT NULL DEFAULT 0
+ *    audit_updated_by  TEXT (nullable)
+ *    audit_updated_at  INTEGER (nullable)
  *
  * ─── How to add a migration ─────────────────────────────────────────────────────
  *
@@ -89,25 +93,50 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 object Migrations {
 
-    // ── Uncomment and fill in when the first schema change is needed ─────────
-    //
-    // val MIGRATION_1_2 = object : Migration(1, 2) {
-    //     override fun migrate(db: SupportSQLiteDatabase) {
-    //         TODO("Write SQL to transform v1 schema into v2")
-    //     }
-    // }
-    //
-    // val MIGRATION_2_3 = object : Migration(2, 3) {
-    //     override fun migrate(db: SupportSQLiteDatabase) {
-    //         TODO("Write SQL to transform v2 schema into v3")
-    //     }
-    // }
+    /**
+     * v1 → v2: Add audit columns to 7 tables.
+     *
+     * Four columns are appended to each table:
+     *   audit_created_by  TEXT NOT NULL DEFAULT 'System'
+     *   audit_created_at  INTEGER NOT NULL DEFAULT 0
+     *   audit_updated_by  TEXT (nullable, no default)
+     *   audit_updated_at  INTEGER (nullable, no default)
+     *
+     * Column names use the "audit_" prefix on every table so that:
+     *  - production_entries and sales (which already have integer `created_by` FK columns)
+     *    have zero naming conflicts.
+     *  - All 7 tables share an identical, predictable naming scheme.
+     *
+     * Existing rows receive 'System'/0/NULL/NULL for the new columns — safe defaults
+     * that indicate "created before audit tracking was introduced."
+     *
+     * Tables affected:
+     *   attendance, worker_advances, payments, production_entries,
+     *   sales, worker_type_history, stock_ledger
+     */
+    val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            val tables = listOf(
+                "attendance",
+                "worker_advances",
+                "payments",
+                "production_entries",
+                "sales",
+                "worker_type_history",
+                "stock_ledger"
+            )
+            for (table in tables) {
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `audit_created_by` TEXT NOT NULL DEFAULT 'System'")
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `audit_created_at` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `audit_updated_by` TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `audit_updated_at` INTEGER DEFAULT NULL")
+            }
+        }
+    }
 
     /**
      * All migrations in ascending version order.
      * Room applies them sequentially — add new ones at the end of the array.
-     *
-     * Currently empty because the app is still on its initial schema (version 1).
      */
-    val ALL: Array<Migration> = emptyArray()
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
 }

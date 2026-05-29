@@ -13,9 +13,12 @@ import com.kulhad.manager.data.local.entity.WorkerAdvanceEntity
 import com.kulhad.manager.data.local.entity.WorkerEntity
 import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.local.entity.WorkerTypeHistoryEntity
+import com.kulhad.manager.data.util.AuditUtils
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.PasswordHasher
+import com.kulhad.manager.di.UserSessionManager
 import com.kulhad.manager.domain.model.AttendanceRecord
+import com.kulhad.manager.domain.model.AuditInfo
 import com.kulhad.manager.domain.model.Worker
 import com.kulhad.manager.domain.model.WorkerAdvanceRecord
 import com.kulhad.manager.domain.model.WorkerTypeChange
@@ -34,7 +37,8 @@ class WorkerRepository @Inject constructor(
     private val typeHistoryDao: WorkerTypeHistoryDao,
     private val advanceDao: WorkerAdvanceDao,
     private val attendanceDao: AttendanceDao,
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val userSessionManager: UserSessionManager
 ) {
 
     // -------- Auth --------
@@ -96,12 +100,15 @@ class WorkerRepository @Inject constructor(
                 isActive = true
             )
         )
+        val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
         typeHistoryDao.insert(
             WorkerTypeHistoryEntity(
                 workerId = id,
                 workerType = type.name,
                 dailyRate = if (type == WorkerType.SALARY) dailyRate else 0,
-                effectiveFrom = joiningDate
+                effectiveFrom = joiningDate,
+                auditCreatedBy = audit.createdBy,
+                auditCreatedAt = audit.createdAt
             )
         )
         id
@@ -162,12 +169,15 @@ class WorkerRepository @Inject constructor(
         val resolvedRate = if (newType == WorkerType.SALARY) newDailyRate else 0
         if (current.currentType != newType.name || current.dailyRate != resolvedRate) {
             workerDao.updateTypeAndRate(workerId, newType.name, resolvedRate)
+            val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
             typeHistoryDao.insert(
                 WorkerTypeHistoryEntity(
                     workerId      = workerId,
                     workerType    = newType.name,
                     dailyRate     = resolvedRate,
-                    effectiveFrom = DateUtils.todayStart()
+                    effectiveFrom = DateUtils.todayStart(),
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
                 )
             )
         }
@@ -180,12 +190,15 @@ class WorkerRepository @Inject constructor(
                 newType.name,
                 if (newType == WorkerType.SALARY) dailyRate else 0
             )
+            val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
             typeHistoryDao.insert(
                 WorkerTypeHistoryEntity(
                     workerId = workerId,
                     workerType = newType.name,
                     dailyRate = if (newType == WorkerType.SALARY) dailyRate else 0,
-                    effectiveFrom = effectiveFrom
+                    effectiveFrom = effectiveFrom,
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
                 )
             )
         }
@@ -207,25 +220,37 @@ class WorkerRepository @Inject constructor(
     // -------- Attendance --------
 
     suspend fun saveAttendance(workerId: Long, date: Long, present: Boolean) {
+        val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
         attendanceDao.upsert(
             AttendanceEntity(
-                workerId = workerId,
-                date = DateUtils.startOfDay(date),
-                isPresent = present
+                workerId       = workerId,
+                date           = DateUtils.startOfDay(date),
+                isPresent      = present,
+                auditCreatedBy = audit.createdBy,
+                auditCreatedAt = audit.createdAt
             )
         )
     }
 
     suspend fun saveAttendanceBatch(date: Long, presence: Map<Long, Boolean>) {
         val day = DateUtils.startOfDay(date)
-        // Need to preserve any existing row IDs so we update them rather than create dupes.
+        val user = userSessionManager.currentUser.value
+        val now  = System.currentTimeMillis()
+
+        // For each worker: read the existing row to preserve creation audit and row ID.
+        // CONFLICT_REPLACE on upsertAll would otherwise wipe the original audit_created_by.
         val merged = presence.map { (workerId, isPresent) ->
             val existing = attendanceDao.findByWorkerAndDate(workerId, day)
             AttendanceEntity(
-                id = existing?.id ?: 0L,
-                workerId = workerId,
-                date = day,
-                isPresent = isPresent
+                id        = existing?.id ?: 0L,
+                workerId  = workerId,
+                date      = day,
+                isPresent = isPresent,
+                // Preserve original creation stamp; stamp update fields if row existed.
+                auditCreatedBy = existing?.auditCreatedBy ?: user,
+                auditCreatedAt = existing?.auditCreatedAt ?: now,
+                auditUpdatedBy = if (existing != null) user else null,
+                auditUpdatedAt = if (existing != null) now  else null
             )
         }
         attendanceDao.upsertAll(merged)
@@ -260,15 +285,36 @@ class WorkerRepository @Inject constructor(
      */
     fun observeAttendanceHistory(date: Long, workerId: Long?): Flow<List<AttendanceRecord>> =
         attendanceDao.observeAttendanceHistory(DateUtils.startOfDay(date), workerId)
-            .map { rows -> rows.map { AttendanceRecord(it.workerId, it.date, it.isPresent) } }
+            .map { rows ->
+                rows.map {
+                    AttendanceRecord(
+                        workerId  = it.workerId,
+                        date      = it.date,
+                        isPresent = it.isPresent,
+                        audit     = AuditInfo(
+                            createdBy = it.auditCreatedBy,
+                            createdAt = it.auditCreatedAt,
+                            updatedBy = it.auditUpdatedBy,
+                            updatedAt = it.auditUpdatedAt
+                        )
+                    )
+                }
+            }
 
     /**
      * Updates the presence flag on an existing attendance row (edit-only, never inserts).
      *
+     * Stamps audit_updated_by / audit_updated_at with the current user and wall-clock time.
      * If no row exists for (workerId, date), the underlying UPDATE is a safe no-op.
      */
     suspend fun editAttendance(workerId: Long, date: Long, isPresent: Boolean) {
-        attendanceDao.updateAttendance(workerId, DateUtils.startOfDay(date), isPresent)
+        attendanceDao.updateAttendance(
+            workerId   = workerId,
+            date       = DateUtils.startOfDay(date),
+            isPresent  = isPresent,
+            updatedBy  = userSessionManager.currentUser.value,
+            updatedAt  = System.currentTimeMillis()
+        )
     }
 
     /** Mark a worker as present for a date if no row exists. Used by production entries. */
@@ -276,8 +322,15 @@ class WorkerRepository @Inject constructor(
         val day = DateUtils.startOfDay(date)
         val existing = attendanceDao.findByWorkerAndDate(workerId, day)
         if (existing == null) {
+            val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
             attendanceDao.upsert(
-                AttendanceEntity(workerId = workerId, date = day, isPresent = true)
+                AttendanceEntity(
+                    workerId       = workerId,
+                    date           = day,
+                    isPresent      = true,
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
+                )
             )
         }
     }
@@ -285,24 +338,27 @@ class WorkerRepository @Inject constructor(
     // -------- Advances --------
 
     suspend fun saveAdvance(workerId: Long, amount: Int, date: Long, remark: String) {
+        val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
         advanceDao.insert(
             WorkerAdvanceEntity(
-                workerId = workerId,
-                amount = amount,
-                date = DateUtils.startOfDay(date),
-                remark = remark
+                workerId       = workerId,
+                amount         = amount,
+                date           = DateUtils.startOfDay(date),
+                remark         = remark,
+                auditCreatedBy = audit.createdBy,
+                auditCreatedAt = audit.createdAt
             )
         )
     }
 
     fun observeAdvances(workerId: Long): Flow<List<WorkerAdvanceRecord>> =
         advanceDao.observeForWorker(workerId).map { list ->
-            list.map { WorkerAdvanceRecord(it.id, it.workerId, it.amount, it.date, it.remark) }
+            list.map { it.toDomain() }
         }
 
     fun observeAllAdvances(): Flow<List<WorkerAdvanceRecord>> =
         advanceDao.observeAll().map { list ->
-            list.map { WorkerAdvanceRecord(it.id, it.workerId, it.amount, it.date, it.remark) }
+            list.map { it.toDomain() }
         }
 
     fun observeAdvanceTotalThisMonth(workerId: Long): Flow<Int> {
@@ -327,4 +383,18 @@ internal fun WorkerEntity.toDomain(): Worker = Worker(
     currentType = runCatching { WorkerType.valueOf(currentType) }.getOrDefault(WorkerType.PIECE),
     dailyRate = dailyRate,
     isActive = isActive
+)
+
+internal fun WorkerAdvanceEntity.toDomain(): WorkerAdvanceRecord = WorkerAdvanceRecord(
+    id       = id,
+    workerId = workerId,
+    amount   = amount,
+    date     = date,
+    remark   = remark,
+    audit    = AuditInfo(
+        createdBy = auditCreatedBy,
+        createdAt = auditCreatedAt,
+        updatedBy = auditUpdatedBy,
+        updatedAt = auditUpdatedAt
+    )
 )

@@ -70,7 +70,12 @@ data class WorkerTypeHistoryEntity(
     @ColumnInfo(name = "worker_id") val workerId: Long,
     @ColumnInfo(name = "worker_type") val workerType: String, // WorkerType.name
     @ColumnInfo(name = "daily_rate", defaultValue = "0") val dailyRate: Int = 0,
-    @ColumnInfo(name = "effective_from") val effectiveFrom: Long
+    @ColumnInfo(name = "effective_from") val effectiveFrom: Long,
+    // ── Audit columns ─────────────────────────────────────────────────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================
@@ -132,7 +137,12 @@ data class AttendanceEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "worker_id") val workerId: Long,
     val date: Long,
-    @ColumnInfo(name = "is_present") val isPresent: Boolean
+    @ColumnInfo(name = "is_present") val isPresent: Boolean,
+    // ── Audit columns ─────────────────────────────────────────────────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================
@@ -171,8 +181,14 @@ data class ProductionEntryEntity(
     @ColumnInfo(name = "defective_quantity", defaultValue = "0") val defectiveQuantity: Int = 0,
     @ColumnInfo(name = "rate_snapshot") val rateSnapshot: Double,
     val date: Long,
+    // Existing FK-based tracking (user ID integer) — kept for relational queries
     @ColumnInfo(name = "created_by", defaultValue = "0") val createdBy: Long,
-    @ColumnInfo(name = "created_at") val createdAt: Long
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    // ── Audit columns (TEXT display-name, survives user deletion) ─────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================
@@ -203,8 +219,14 @@ data class StockLedgerEntity(
     @ColumnInfo(name = "quantity_change") val quantityChange: Int,
     @ColumnInfo(name = "change_type") val changeType: String, // StockChangeType.name
     @ColumnInfo(defaultValue = "") val remark: String = "",
+    // Existing FK-based tracking (user ID integer) — kept for relational queries
     @ColumnInfo(name = "done_by", defaultValue = "0") val doneBy: Long,
-    val timestamp: Long
+    val timestamp: Long,
+    // ── Audit columns (TEXT display-name, survives user deletion) ─────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================
@@ -228,7 +250,13 @@ data class SaleEntity(
     @ColumnInfo(name = "customer_name") val customerName: String,
     val date: Long,
     @ColumnInfo(name = "total_amount") val totalAmount: Int,
-    @ColumnInfo(name = "created_by", defaultValue = "0") val createdBy: Long
+    // Existing FK-based tracking (user ID integer) — kept for relational queries
+    @ColumnInfo(name = "created_by", defaultValue = "0") val createdBy: Long,
+    // ── Audit columns (TEXT display-name, survives user deletion) ─────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================
@@ -282,7 +310,12 @@ data class PaymentEntity(
     @ColumnInfo(name = "sale_id") val saleId: Long,
     val amount: Int,
     val date: Long,
-    @ColumnInfo(defaultValue = "") val remark: String = ""
+    @ColumnInfo(defaultValue = "") val remark: String = "",
+    // ── Audit columns ─────────────────────────────────────────────────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================
@@ -351,5 +384,10 @@ data class WorkerAdvanceEntity(
     @ColumnInfo(name = "worker_id") val workerId: Long,
     val amount: Int,
     val date: Long,
-    @ColumnInfo(defaultValue = "") val remark: String = ""
+    @ColumnInfo(defaultValue = "") val remark: String = "",
+    // ── Audit columns ─────────────────────────────────────────────────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )

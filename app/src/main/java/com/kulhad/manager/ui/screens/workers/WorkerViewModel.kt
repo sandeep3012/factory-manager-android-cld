@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.repository.WorkerRepository
 import com.kulhad.manager.di.WorkingDateManager
+import com.kulhad.manager.data.util.toDisplay
 import com.kulhad.manager.domain.model.AttendanceRecord
+import com.kulhad.manager.domain.model.AuditDisplay
 import com.kulhad.manager.domain.model.Worker
 import com.kulhad.manager.domain.model.WorkerAdvanceRecord
 import com.kulhad.manager.domain.model.WorkerTypeChange
@@ -35,12 +37,18 @@ data class WorkerListData(
 
 // ── Attendance history UI models ─────────────────────────────────────────────
 
-/** A single row displayed on the AttendanceHistoryScreen. */
+/**
+ * A single row displayed on the AttendanceHistoryScreen.
+ *
+ * [audit] is the presentation-layer view of the row's write-audit metadata.
+ * Passed to [com.kulhad.manager.ui.components.AuditInfoCard] in the edit dialog.
+ */
 data class AttendanceUi(
     val workerId: Long,
     val workerName: String,
     val isPresent: Boolean,
-    val date: Long
+    val date: Long,
+    val audit: AuditDisplay
 )
 
 /** Full UI state for AttendanceHistoryScreen. */
@@ -219,7 +227,8 @@ class WorkerViewModel @Inject constructor(
                             workerId   = rec.workerId,
                             workerName = workerMap[rec.workerId]?.name ?: "Worker",
                             isPresent  = rec.isPresent,
-                            date       = rec.date
+                            date       = rec.date,
+                            audit      = rec.audit.toDisplay()
                         )
                     }
                 )

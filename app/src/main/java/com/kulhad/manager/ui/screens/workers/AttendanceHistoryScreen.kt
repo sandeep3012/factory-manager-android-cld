@@ -39,7 +39,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.util.DateUtils
+import com.kulhad.manager.domain.model.AuditDisplay
 import com.kulhad.manager.domain.model.Worker
+import com.kulhad.manager.ui.components.AuditInfoCard
 import com.kulhad.manager.ui.components.BadgeType
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.StatusBadge
@@ -163,6 +165,7 @@ fun AttendanceHistoryScreen(
             workerName   = target.workerName,
             date         = target.date,
             isPresent    = editIsPresent,
+            audit        = target.audit,
             onToggle     = { editIsPresent = it },
             onDismiss    = { editTarget = null },
             onSave       = {
@@ -259,6 +262,7 @@ private fun AttendanceEditDialog(
     workerName: String,
     date: Long,
     isPresent: Boolean,
+    audit: AuditDisplay,
     onToggle: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit
@@ -327,6 +331,9 @@ private fun AttendanceEditDialog(
                         Text("Absent", color = if (!isPresent) ErrorRed else TextPrimary, fontSize = 15.sp)
                     }
                 }
+
+                // Audit info — read-only, always shown
+                AuditInfoCard(audit = audit)
             }
         },
         confirmButton = {

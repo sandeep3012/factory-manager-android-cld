@@ -63,18 +63,30 @@ interface AttendanceDao {
     fun observeAttendanceHistory(date: Long, workerId: Long?): Flow<List<AttendanceEntity>>
 
     /**
-     * Updates the [isPresent] flag on an existing attendance row.
+     * Updates the [isPresent] flag on an existing attendance row and stamps audit fields.
      *
      * Uses a targeted UPDATE — never inserts — so duplicate rows are structurally impossible.
      * If no matching row exists, the UPDATE is a no-op (zero rows affected).
+     *
+     * [updatedBy] and [updatedAt] are written to audit_updated_by / audit_updated_at;
+     * the creation audit columns (audit_created_by / audit_created_at) are intentionally
+     * left unchanged to preserve the original authorship.
      */
     @Query("""
         UPDATE attendance
-        SET is_present = :isPresent
+        SET is_present       = :isPresent,
+            audit_updated_by = :updatedBy,
+            audit_updated_at = :updatedAt
         WHERE worker_id = :workerId
         AND date = :date
     """)
-    suspend fun updateAttendance(workerId: Long, date: Long, isPresent: Boolean)
+    suspend fun updateAttendance(
+        workerId: Long,
+        date: Long,
+        isPresent: Boolean,
+        updatedBy: String,
+        updatedAt: Long
+    )
 }
 
 data class DailyAttendanceCount(

@@ -14,7 +14,10 @@ import com.kulhad.manager.data.local.entity.ProductEntity
 import com.kulhad.manager.data.local.entity.ProductionEntryEntity
 import com.kulhad.manager.data.local.entity.StockChangeType
 import com.kulhad.manager.data.local.entity.StockLedgerEntity
+import com.kulhad.manager.data.util.AuditUtils
 import com.kulhad.manager.data.util.DateUtils
+import com.kulhad.manager.di.UserSessionManager
+import com.kulhad.manager.domain.model.AuditInfo
 import com.kulhad.manager.domain.model.Product
 import com.kulhad.manager.domain.model.ProductWithRate
 import com.kulhad.manager.domain.model.ProductionEntry
@@ -32,7 +35,8 @@ class ProductionRepository @Inject constructor(
     private val productionDao: ProductionEntryDao,
     private val stockLedgerDao: StockLedgerDao,
     private val workerDao: WorkerDao,
-    private val attendanceDao: AttendanceDao
+    private val attendanceDao: AttendanceDao,
+    private val userSessionManager: UserSessionManager
 ) {
 
     fun observeProducts(): Flow<List<Product>> =
@@ -87,38 +91,51 @@ class ProductionRepository @Inject constructor(
         val day = DateUtils.startOfDay(date)
         val now = System.currentTimeMillis()
         val net = quantity - defective
+        val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
 
         val entryId = productionDao.insert(
             ProductionEntryEntity(
-                workerId = workerId,
-                productId = productId,
-                quantityProduced = quantity,
+                workerId          = workerId,
+                productId         = productId,
+                quantityProduced  = quantity,
                 defectiveQuantity = defective,
-                rateSnapshot = rate,
-                date = day,
-                createdBy = userId,
-                createdAt = now
+                rateSnapshot      = rate,
+                date              = day,
+                createdBy         = userId,
+                createdAt         = now,
+                auditCreatedBy    = audit.createdBy,
+                auditCreatedAt    = audit.createdAt
             )
         )
 
         if (net > 0) {
             stockLedgerDao.insert(
                 StockLedgerEntity(
-                    productId = productId,
+                    productId      = productId,
                     quantityChange = net,
-                    changeType = StockChangeType.PRODUCTION.name,
-                    remark = "",
-                    doneBy = userId,
-                    timestamp = now
+                    changeType     = StockChangeType.PRODUCTION.name,
+                    remark         = "",
+                    doneBy         = userId,
+                    timestamp      = now,
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
                 )
             )
         }
 
-        // Auto-attendance
+        // Auto-attendance: reuse the same audit snapshot created above so the
+        // attendance row's audit_created_by / audit_created_at align with the
+        // production entry that triggered it.
         val existing = attendanceDao.findByWorkerAndDate(workerId, day)
         if (existing == null) {
             attendanceDao.upsert(
-                AttendanceEntity(workerId = workerId, date = day, isPresent = true)
+                AttendanceEntity(
+                    workerId       = workerId,
+                    date           = day,
+                    isPresent      = true,
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
+                )
             )
         }
 
@@ -129,6 +146,22 @@ class ProductionRepository @Inject constructor(
 
     fun observeEntriesInRange(from: Long, to: Long): Flow<List<ProductionEntry>> =
         combineEntries(productionDao.observeInRange(from, to))
+
+    /**
+     * Reactive list of entries for a single calendar day, newest first.
+     *
+     * [date] is normalised to start-of-day before querying so that any epoch-millis
+     * value within the day (e.g. one returned directly from WorkingDateManager) works
+     * correctly without the caller performing the normalisation itself.
+     *
+     * Used by [com.kulhad.manager.ui.screens.production.ProductionViewModel.historyDayEntries]
+     * to power the date-based Production History screen.
+     */
+    fun observeEntriesForDay(date: Long): Flow<List<ProductionEntry>> {
+        val start = DateUtils.startOfDay(date)
+        val end   = DateUtils.endOfDay(start)
+        return observeEntriesInRange(start, end)
+    }
 
     private fun combineEntries(
         source: Flow<List<ProductionEntryEntity>>
@@ -141,17 +174,23 @@ class ProductionRepository @Inject constructor(
         val productById = products.associate { it.id to it.sizeMl }
         entries.map { e ->
             ProductionEntry(
-                id = e.id,
-                workerId = e.workerId,
-                workerName = workerById[e.workerId] ?: "Unknown",
-                productId = e.productId,
-                productSize = productById[e.productId] ?: 0,
+                id               = e.id,
+                workerId         = e.workerId,
+                workerName       = workerById[e.workerId] ?: "Unknown",
+                productId        = e.productId,
+                productSize      = productById[e.productId] ?: 0,
                 quantityProduced = e.quantityProduced,
                 defectiveQuantity = e.defectiveQuantity,
-                rateSnapshot = e.rateSnapshot,
-                date = e.date,
-                createdBy = e.createdBy,
-                createdAt = e.createdAt
+                rateSnapshot     = e.rateSnapshot,
+                date             = e.date,
+                createdBy        = e.createdBy,
+                createdAt        = e.createdAt,
+                audit            = AuditInfo(
+                    createdBy = e.auditCreatedBy,
+                    createdAt = e.auditCreatedAt,
+                    updatedBy = e.auditUpdatedBy,
+                    updatedAt = e.auditUpdatedAt
+                )
             )
         }
     }

@@ -8,8 +8,10 @@ import com.kulhad.manager.data.local.dao.UserDao
 import com.kulhad.manager.data.local.dao.WorkerDao
 import com.kulhad.manager.data.local.entity.StockChangeType
 import com.kulhad.manager.data.local.entity.StockLedgerEntity
+import com.kulhad.manager.data.util.AuditUtils
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.StockThresholds
+import com.kulhad.manager.di.UserSessionManager
 import com.kulhad.manager.domain.model.StockItem
 import com.kulhad.manager.domain.model.StockMovement
 import javax.inject.Inject
@@ -25,7 +27,8 @@ class StockRepository @Inject constructor(
     private val workerDao: WorkerDao,
     private val saleDao: SaleDao,
     private val saleItemDao: SaleItemDao,
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val userSessionManager: UserSessionManager
 ) {
 
     fun observeStockItems(): Flow<List<StockItem>> = combine(
@@ -65,14 +68,17 @@ class StockRepository @Inject constructor(
             StockChangeType.ADJUSTMENT -> quantityChange
             else -> quantityChange
         }
+        val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
         stockLedgerDao.insert(
             StockLedgerEntity(
-                productId = productId,
+                productId      = productId,
                 quantityChange = signed,
-                changeType = type.name,
-                remark = remark,
-                doneBy = userId,
-                timestamp = System.currentTimeMillis()
+                changeType     = type.name,
+                remark         = remark,
+                doneBy         = userId,
+                timestamp      = audit.createdAt,
+                auditCreatedBy = audit.createdBy,
+                auditCreatedAt = audit.createdAt
             )
         )
     }

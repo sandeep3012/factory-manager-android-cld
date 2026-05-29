@@ -13,11 +13,10 @@ import com.kulhad.manager.domain.model.ProductionEntry
 import com.kulhad.manager.domain.model.Worker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -87,19 +86,24 @@ class ProductionViewModel @Inject constructor(
         )
     }
 
-    private val _historyMonth = MutableStateFlow(System.currentTimeMillis())
-    val historyMonth: StateFlow<Long> = _historyMonth.asStateFlow()
-
+    /**
+     * Production entries for the currently selected [workingDate], newest first.
+     *
+     * Re-queries whenever the global working date changes via [WorkingDateManager].
+     * Uses [flatMapLatest] so the previous DB subscription is cancelled on every date
+     * change — stale data from a previous day cannot leak through.
+     *
+     * Powered by [ProductionRepository.observeEntriesForDay] which normalises the date
+     * to start-of-day / end-of-day bounds internally.
+     */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val historyEntries: StateFlow<List<ProductionEntry>> = _historyMonth
-        .flatMapLatest { anchor ->
-            val from = DateUtils.startOfMonth(anchor)
-            val to = DateUtils.endOfMonth(anchor)
-            productionRepository.observeEntriesInRange(from, to)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    fun setHistoryMonth(anchor: Long) { _historyMonth.value = anchor }
+    val historyDayEntries: StateFlow<List<ProductionEntry>> =
+        workingDateManager.currentWorkingDate
+            .flatMapLatest { date ->
+                val epochMilli = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                productionRepository.observeEntriesForDay(epochMilli)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     suspend fun rateFor(productId: Long): Double = productionRepository.currentRate(productId)
 

@@ -55,8 +55,8 @@ import com.kulhad.manager.data.util.PasswordHasher
         ExpenseEntity::class,
         WorkerAdvanceEntity::class
     ],
-    version = 1,
-    exportSchema = true  // writes app/schemas/…/1.json — commit this file to git
+    version = 2,
+    exportSchema = true  // writes app/schemas/…/<version>.json — commit to git
 )
 @TypeConverters(Converters::class)
 abstract class KulhadDatabase : RoomDatabase() {
