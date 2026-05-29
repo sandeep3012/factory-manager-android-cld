@@ -23,6 +23,7 @@ import com.kulhad.manager.ui.navigation.Routes
 import com.kulhad.manager.ui.screens.auth.LoginScreen
 import com.kulhad.manager.ui.screens.dashboard.DashboardScreen
 import com.kulhad.manager.ui.screens.expense.AddExpenseScreen
+import com.kulhad.manager.ui.screens.expense.ExpenseHistoryScreen
 import com.kulhad.manager.ui.screens.expense.ExpenseScreen
 import com.kulhad.manager.ui.screens.production.AddProductionScreen
 import com.kulhad.manager.ui.screens.production.ProductionHistoryScreen
@@ -36,6 +37,7 @@ import com.kulhad.manager.ui.screens.sales.CreateSaleScreen
 import com.kulhad.manager.ui.screens.sales.PaymentEntryScreen
 import com.kulhad.manager.ui.screens.sales.PendingPaymentsScreen
 import com.kulhad.manager.ui.screens.sales.SalesScreen
+import com.kulhad.manager.ui.screens.stock.StockAdjustmentHistoryScreen
 import com.kulhad.manager.ui.screens.stock.StockAdjustmentScreen
 import com.kulhad.manager.ui.screens.stock.StockLedgerScreen
 import com.kulhad.manager.ui.screens.stock.StockScreen
@@ -105,7 +107,7 @@ class MainActivity : ComponentActivity() {
                                     onAttendance = { navController.navigate(Routes.ATTENDANCE) },
                                     onAddProduction = { navController.navigate(Routes.ADD_PRODUCTION) },
                                     onCreateSale = { navController.navigate(Routes.CREATE_SALE) },
-                                    onAddExpense = { navController.navigate(Routes.ADD_EXPENSE) },
+                                    onAddExpense  = { navController.navigate(Routes.EXPENSE) },
                                     onOpenReports = { navController.navigate(Routes.REPORTS) },
                                     onOpenStock = { navController.navigate(Routes.STOCK) }
                                 )
@@ -232,8 +234,9 @@ class MainActivity : ComponentActivity() {
                             // ── Stock ────────────────────────────────────────────────────────────
                             composable(Routes.STOCK) {
                                 StockScreen(
-                                    onAdjust = { navController.navigate(Routes.STOCK_ADJUSTMENT) },
-                                    onLedger = { id -> navController.navigate(Routes.stockLedger(id)) }
+                                    onAdjust  = { navController.navigate(Routes.STOCK_ADJUSTMENT) },
+                                    onHistory = { navController.navigate(Routes.STOCK_ADJUSTMENT_HISTORY) },
+                                    onLedger  = { id -> navController.navigate(Routes.stockLedger(id)) }
                                 )
                             }
 
@@ -254,16 +257,25 @@ class MainActivity : ComponentActivity() {
                                 StockAdjustmentScreen(onBack = { navController.popBackStack() })
                             }
 
+                            composable(Routes.STOCK_ADJUSTMENT_HISTORY) {
+                                StockAdjustmentHistoryScreen(onBack = { navController.popBackStack() })
+                            }
+
                             // ── Expense ──────────────────────────────────────────────────────────
                             composable(Routes.EXPENSE) {
                                 ExpenseScreen(
                                     onAddExpense = { navController.navigate(Routes.ADD_EXPENSE) },
-                                    onBack = { navController.popBackStack() }
+                                    onHistory    = { navController.navigate(Routes.EXPENSE_HISTORY) },
+                                    onBack       = { navController.popBackStack() }
                                 )
                             }
 
                             composable(Routes.ADD_EXPENSE) {
                                 AddExpenseScreen(onBack = { navController.popBackStack() })
+                            }
+
+                            composable(Routes.EXPENSE_HISTORY) {
+                                ExpenseHistoryScreen(onBack = { navController.popBackStack() })
                             }
 
                             // ── Reports ──────────────────────────────────────────────────────────

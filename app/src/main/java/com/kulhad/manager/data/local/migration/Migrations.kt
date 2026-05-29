@@ -38,6 +38,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    audit_updated_by  TEXT (nullable)
  *    audit_updated_at  INTEGER (nullable)
  *
+ * ─── v3 additions (MIGRATION_2_3) ───────────────────────────────────────────────
+ *
+ *  expenses gains the same four audit columns that were added in v2 for other tables.
+ *  Existing rows receive 'System'/0/NULL/NULL — the same "migrated" defaults used by v2.
+ *
  * ─── How to add a migration ─────────────────────────────────────────────────────
  *
  * Whenever you change ANY @Entity (add/rename/drop a column, add a new table,
@@ -135,8 +140,28 @@ object Migrations {
     }
 
     /**
+     * v2 → v3: Add audit columns to the `expenses` table.
+     *
+     * The `expenses` table was excluded from MIGRATION_1_2 because the feature scope
+     * at that time did not include expense audit tracking. This migration brings it
+     * in line with all other audited tables using the same column set and defaults.
+     *
+     * Existing expense rows receive 'System'/0/NULL/NULL — the same "migrated" sentinel
+     * values used by v2 for all other tables. [AuditInfoCard] renders createdAt == 0L
+     * as "—" to indicate a pre-audit row.
+     */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `expenses` ADD COLUMN `audit_created_by` TEXT NOT NULL DEFAULT 'System'")
+            db.execSQL("ALTER TABLE `expenses` ADD COLUMN `audit_created_at` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `expenses` ADD COLUMN `audit_updated_by` TEXT DEFAULT NULL")
+            db.execSQL("ALTER TABLE `expenses` ADD COLUMN `audit_updated_at` INTEGER DEFAULT NULL")
+        }
+    }
+
+    /**
      * All migrations in ascending version order.
      * Room applies them sequentially — add new ones at the end of the array.
      */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }

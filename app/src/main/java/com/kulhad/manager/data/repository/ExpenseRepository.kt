@@ -4,7 +4,10 @@ import com.kulhad.manager.data.local.dao.ExpenseDao
 import com.kulhad.manager.data.local.dao.ExpenseTypeDao
 import com.kulhad.manager.data.local.entity.ExpenseEntity
 import com.kulhad.manager.data.local.entity.ExpenseTypeEntity
+import com.kulhad.manager.data.util.AuditUtils
 import com.kulhad.manager.data.util.DateUtils
+import com.kulhad.manager.di.UserSessionManager
+import com.kulhad.manager.domain.model.AuditInfo
 import com.kulhad.manager.domain.model.Expense
 import com.kulhad.manager.domain.model.ExpenseType
 import javax.inject.Inject
@@ -16,7 +19,8 @@ import kotlinx.coroutines.flow.map
 @Singleton
 class ExpenseRepository @Inject constructor(
     private val expenseDao: ExpenseDao,
-    private val expenseTypeDao: ExpenseTypeDao
+    private val expenseTypeDao: ExpenseTypeDao,
+    private val userSessionManager: UserSessionManager
 ) {
 
     fun observeTypes(): Flow<List<ExpenseType>> =
@@ -31,15 +35,52 @@ class ExpenseRepository @Inject constructor(
         return existing?.id ?: expenseTypeDao.insert(ExpenseTypeEntity(name = trimmed, isActive = true))
     }
 
+    /**
+     * Inserts a new expense row.
+     *
+     * [date] should be [WorkingDateManager.currentEpochMilli] from the ViewModel —
+     * it is normalised to start-of-day and stored as the business date.
+     * [auditCreatedAt] is always [System.currentTimeMillis] (via [AuditUtils.createAudit]),
+     * keeping the actual write time independent of the chosen business date.
+     */
     suspend fun addExpense(typeId: Long, amount: Int, date: Long, remark: String, userId: Long) {
         require(amount > 0) { "Amount must be positive" }
+        val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
         expenseDao.insert(
             ExpenseEntity(
-                expenseTypeId = typeId,
-                amount = amount,
-                date = DateUtils.startOfDay(date),
-                remark = remark,
-                addedBy = userId
+                expenseTypeId  = typeId,
+                amount         = amount,
+                date           = DateUtils.startOfDay(date),
+                remark         = remark,
+                addedBy        = userId,
+                auditCreatedBy = audit.createdBy,
+                auditCreatedAt = audit.createdAt
+            )
+        )
+    }
+
+    /**
+     * Updates an existing expense row's type, amount, and remark.
+     *
+     * Preserves the original [date] and creation-audit fields unchanged.
+     * Stamps [auditUpdatedBy] / [auditUpdatedAt] via [AuditUtils.updateAudit].
+     * No new row is created — this is a true Room UPDATE.
+     */
+    suspend fun updateExpense(id: Long, typeId: Long, amount: Int, remark: String) {
+        require(amount > 0) { "Amount must be positive" }
+        val existing = expenseDao.findById(id) ?: return
+        val audit = AuditUtils.updateAudit(
+            oldCreatedBy = existing.auditCreatedBy,
+            oldCreatedAt = existing.auditCreatedAt,
+            currentUser  = userSessionManager.currentUser.value
+        )
+        expenseDao.update(
+            existing.copy(
+                expenseTypeId  = typeId,
+                amount         = amount,
+                remark         = remark,
+                auditUpdatedBy = audit.updatedBy,
+                auditUpdatedAt = audit.updatedAt
             )
         )
     }
@@ -58,6 +99,20 @@ class ExpenseRepository @Inject constructor(
     ) { rows, types ->
         val byId = types.associate { it.id to it.name }
         rows.map { it.toDomain(byId[it.expenseTypeId] ?: "Unknown") }
+    }
+
+    /**
+     * Reactive list of expenses for a single calendar day, newest first.
+     *
+     * [date] is normalised to start-of-day / end-of-day internally so any epoch-millis
+     * value within the day (e.g. from [WorkingDateManager.currentEpochMilli]) works.
+     *
+     * Used by [ExpenseViewModel.historyDayExpenses] to power the date-based history screen.
+     */
+    fun observeExpensesForDay(date: Long): Flow<List<Expense>> {
+        val start = DateUtils.startOfDay(date)
+        val end   = DateUtils.endOfDay(start)
+        return observeInRange(start, end)
     }
 
     fun observeTotalThisMonth(): Flow<Int> {
@@ -103,12 +158,18 @@ class ExpenseRepository @Inject constructor(
         expenseDao.observeTotalInRange(from, to)
 
     private fun ExpenseEntity.toDomain(typeName: String) = Expense(
-        id = id,
-        typeId = expenseTypeId,
+        id       = id,
+        typeId   = expenseTypeId,
         typeName = typeName,
-        amount = amount,
-        date = date,
-        remark = remark,
-        addedBy = addedBy
+        amount   = amount,
+        date     = date,
+        remark   = remark,
+        addedBy  = addedBy,
+        audit    = AuditInfo(
+            createdBy = auditCreatedBy,
+            createdAt = auditCreatedAt,
+            updatedBy = auditUpdatedBy,
+            updatedAt = auditUpdatedAt
+        )
     )
 }

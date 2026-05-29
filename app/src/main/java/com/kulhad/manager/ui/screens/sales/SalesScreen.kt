@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -168,7 +169,11 @@ fun SalesScreen(
                 }
             } else {
                 items(data.recent, key = { it.sale.id }) { s ->
-                    RealSaleRow(s) { selectedSummary = s }
+                    RealSaleRow(
+                        s               = s,
+                        onClick         = { selectedSummary = s },
+                        onPaymentsClick = { onSaleClick(s.sale.id) }
+                    )
                 }
             }
         }
@@ -196,8 +201,26 @@ private fun DemoSaleRow(s: UiDemoData.DemoSale) {
     }
 }
 
+/**
+ * A sale list row with two independent click zones:
+ *
+ * - **Main body** (anywhere except the trailing icon) — calls [onClick], which opens
+ *   the [SaleDetailDialog] with audit info.
+ * - **Trailing [ReceiptLong] icon** — calls [onPaymentsClick], navigating to
+ *   [PaymentEntryScreen] for the full payment history + add-payment flow.
+ *
+ * Compose touch propagation ensures [IconButton] consumes its own pointer event —
+ * tapping the icon does NOT trigger the parent Row's [onClick].
+ *
+ * [onPaymentsClick] defaults to a no-op so [SaleCard] (backward-compat alias) compiles
+ * without a third argument.
+ */
 @Composable
-fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
+fun RealSaleRow(
+    s: SaleSummary,
+    onClick: () -> Unit,
+    onPaymentsClick: () -> Unit = {}
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -207,7 +230,7 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Icon box (HTML screen 7 style)
+            // Left: storefront icon box (card-style, HTML screen 7)
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(7.dp))
@@ -218,6 +241,8 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
                 Icon(Icons.Outlined.Storefront, contentDescription = null,
                     tint = InfoBlue, modifier = Modifier.size(17.dp))
             }
+
+            // Middle: customer name + date (takes all remaining width)
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = s.sale.customerName, color = TextPrimary,
                     fontSize = 14.sp, fontWeight = FontWeight.W500)
@@ -226,6 +251,8 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
                     color = TextSecondary, fontSize = 13.sp
                 )
             }
+
+            // Trailing: amount + status badge
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = Money.formatRupees(s.sale.totalAmount),
@@ -237,12 +264,26 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
                     SaleStatus.UNPAID  -> StatusBadge("Unpaid",  BadgeType.ERROR)
                 }
             }
+
+            // Trailing action: navigate to PaymentEntryScreen.
+            // IconButton consumes its own touch — does NOT trigger the Row's clickable.
+            IconButton(
+                onClick  = onPaymentsClick,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector        = Icons.Outlined.ReceiptLong,
+                    contentDescription = "View payments",
+                    tint               = TextSecondary,
+                    modifier           = Modifier.size(18.dp)
+                )
+            }
         }
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
     }
 }
 
-// Keep old SaleCard for backward compatibility with PaymentEntryScreen etc.
+// Backward-compat alias — onPaymentsClick defaults to no-op via RealSaleRow's default param.
 @Composable
 fun SaleCard(s: SaleSummary, onClick: () -> Unit) = RealSaleRow(s, onClick)
 

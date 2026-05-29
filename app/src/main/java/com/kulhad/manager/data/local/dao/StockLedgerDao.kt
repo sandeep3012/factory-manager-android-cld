@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.kulhad.manager.data.local.entity.StockLedgerEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -15,6 +16,26 @@ interface StockLedgerDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entries: List<StockLedgerEntity>)
+
+    /** Full-row update — used by the adjustment edit flow to change qty/remark and stamp audit. */
+    @Update
+    suspend fun update(entry: StockLedgerEntity)
+
+    /** Load a single ledger row by primary key — needed before updating to read existing audit fields. */
+    @Query("SELECT * FROM stock_ledger WHERE id = :id")
+    suspend fun findById(id: Long): StockLedgerEntity?
+
+    /**
+     * Reactive list of LOSS and ADJUSTMENT entries whose [timestamp] falls within [from]..[to].
+     * Used by the date-based Adjustment History screen.
+     */
+    @Query(
+        "SELECT * FROM stock_ledger " +
+        "WHERE timestamp >= :from AND timestamp <= :to " +
+        "AND change_type IN ('LOSS', 'ADJUSTMENT') " +
+        "ORDER BY timestamp DESC, id DESC"
+    )
+    fun observeAdjustmentsInRange(from: Long, to: Long): Flow<List<StockLedgerEntity>>
 
     @Query(
         "SELECT IFNULL(SUM(quantity_change), 0) FROM stock_ledger WHERE product_id = :productId"

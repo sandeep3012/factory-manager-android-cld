@@ -360,7 +360,12 @@ data class ExpenseEntity(
     val amount: Int,
     val date: Long,
     @ColumnInfo(defaultValue = "") val remark: String = "",
-    @ColumnInfo(name = "added_by", defaultValue = "0") val addedBy: Long
+    @ColumnInfo(name = "added_by", defaultValue = "0") val addedBy: Long,
+    // ── Audit columns (added in MIGRATION_2_3) ────────────────────────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================

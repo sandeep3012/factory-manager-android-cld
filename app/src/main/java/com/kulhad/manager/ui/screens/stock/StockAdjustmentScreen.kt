@@ -23,13 +23,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.local.entity.StockChangeType
-import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.components.SegmentedControl
 import com.kulhad.manager.ui.components.SizePillGrid
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.InfoBlue
 import com.kulhad.manager.ui.theme.SurfaceCard
@@ -42,6 +42,7 @@ fun StockAdjustmentScreen(
     viewModel: StockViewModel = hiltViewModel()
 ) {
     val products by viewModel.products.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
     var typeStr by remember { mutableStateOf("Loss") }
     var sizeMl by remember { mutableStateOf<Int?>(null) }
     var qty by remember { mutableStateOf("") }
@@ -116,10 +117,11 @@ fun StockAdjustmentScreen(
                     onValueChange = { remark = it }
                 )
             }
+            // Working date chip — adjustment timestamp uses this date as business date
             item {
-                Text(
-                    text = "Date: ${DateUtils.formatDay(System.currentTimeMillis())}",
-                    color = TextSecondary, fontSize = 12.sp
+                WorkingDateChip(
+                    selectedDate   = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
                 )
             }
             item {
