@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +56,7 @@ import com.kulhad.manager.ui.theme.WarningAmber
 @Composable
 fun ExpenseScreen(
     onAddExpense: () -> Unit,
+    onHistory: () -> Unit,
     onBack: () -> Unit,
     viewModel: ExpenseViewModel = hiltViewModel()
 ) {
@@ -77,6 +79,10 @@ fun ExpenseScreen(
             title = "Expenses / व्यय",
             onBack = onBack,
             actions = {
+                IconButton(onClick = onHistory) {
+                    Icon(Icons.Outlined.History, contentDescription = "Expense History",
+                        tint = TextPrimary)
+                }
                 IconButton(onClick = onAddExpense) {
                     Icon(Icons.Filled.Add, contentDescription = "Add", tint = PrimaryBlue)
                 }

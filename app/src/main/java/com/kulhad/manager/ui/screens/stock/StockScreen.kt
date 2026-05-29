@@ -15,8 +15,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,6 +52,7 @@ import com.kulhad.manager.ui.theme.WarningAmber
 @Composable
 fun StockScreen(
     onAdjust: () -> Unit,
+    onHistory: () -> Unit,
     onLedger: (Long) -> Unit,
     viewModel: StockViewModel = hiltViewModel()
 ) {
@@ -79,6 +82,10 @@ fun StockScreen(
         KulhadTopBar(
             title = "Stock / Inventory",
             actions = {
+                IconButton(onClick = onHistory) {
+                    Icon(Icons.Outlined.History, contentDescription = "Adjustment History",
+                        tint = TextPrimary)
+                }
                 TextButton(onClick = onAdjust) {
                     Icon(Icons.Outlined.Tune, contentDescription = null, tint = PrimaryBlue)
                     Text("Adjust", color = PrimaryBlue, fontSize = 13.sp,

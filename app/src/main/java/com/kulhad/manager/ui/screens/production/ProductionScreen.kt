@@ -34,6 +34,7 @@ import com.kulhad.manager.ui.charts.SimpleBarChart
 import com.kulhad.manager.ui.components.KpiStrip
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.OverlayWhite07
@@ -53,6 +54,7 @@ fun ProductionScreen(
 ) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val productsWithRates by viewModel.productsWithRates.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
 
     val useDemo = UiDemoData.SHOW_DEMO && stats.totalPieces == 0 && stats.daily.all { it == 0 }
 
@@ -78,6 +80,14 @@ fun ProductionScreen(
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Working date chip — tap to change the global working date
+            item {
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
+                )
+            }
+
             // KPI strip — replaces StatCard row
             item {
                 KpiStrip(

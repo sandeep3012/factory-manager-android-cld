@@ -16,7 +16,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,14 +36,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.Money
+import com.kulhad.manager.data.util.toDisplay
+import com.kulhad.manager.domain.model.WorkerAdvanceRecord
+import com.kulhad.manager.ui.components.AuditInfoCard
 import com.kulhad.manager.ui.components.KpiStrip
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
 import com.kulhad.manager.ui.theme.OverlayWhite07
+import com.kulhad.manager.ui.theme.PrimaryBlue
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextPrimary
 import com.kulhad.manager.ui.theme.TextSecondary
@@ -54,10 +61,11 @@ fun AdvanceEntryScreen(
     viewModel: WorkerViewModel = hiltViewModel()
 ) {
     val workers by viewModel.activeWorkers.collectAsStateWithLifecycle()
-    var selectedId by remember { mutableStateOf(initialWorkerId) }
-    var amount by remember { mutableStateOf("") }
-    var remark by remember { mutableStateOf("") }
-    val date = DateUtils.todayStart()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
+    var selectedId       by remember { mutableStateOf(initialWorkerId) }
+    var amount           by remember { mutableStateOf("") }
+    var remark           by remember { mutableStateOf("") }
+    var selectedAdvance  by remember { mutableStateOf<WorkerAdvanceRecord?>(null) }
 
     val effectiveId = selectedId ?: workers.firstOrNull()?.id
     val advances by (effectiveId?.let { viewModel.observeAdvances(it) }
@@ -65,6 +73,14 @@ fun AdvanceEntryScreen(
     val monthTotal by (effectiveId?.let { viewModel.observeAdvanceTotalThisMonth(it) }
         ?: kotlinx.coroutines.flow.flowOf(0)).collectAsStateWithLifecycle(0)
     val workerName = workers.firstOrNull { it.id == effectiveId }?.name ?: "Worker"
+
+    // ── Advance detail dialog (view-only, tap outside / back to close) ────────
+    selectedAdvance?.let { a ->
+        AdvanceDetailDialog(
+            advance   = a,
+            onDismiss = { selectedAdvance = null }
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(title = "Advance Entry", onBack = onBack)
@@ -156,10 +172,11 @@ fun AdvanceEntryScreen(
                     onValueChange = { remark = it }
                 )
             }
+            // Working date chip — date is read from WorkingDateManager inside saveAdvance()
             item {
-                Text(
-                    text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary, fontSize = 14.sp
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
                 )
             }
             item {
@@ -168,7 +185,7 @@ fun AdvanceEntryScreen(
                     onClick = {
                         val amt = amount.toIntOrNull() ?: return@KulhadButton
                         if (amt <= 0 || effectiveId == null) return@KulhadButton
-                        viewModel.saveAdvance(effectiveId, amt, date, remark) {
+                        viewModel.saveAdvance(effectiveId, amt, remark) {
                             amount = ""
                             remark = ""
                         }
@@ -200,6 +217,7 @@ fun AdvanceEntryScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable { selectedAdvance = a }
                                 .padding(vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -226,4 +244,83 @@ fun AdvanceEntryScreen(
             }
         }
     }
+}
+
+// ── Advance detail dialog ─────────────────────────────────────────────────────
+
+/**
+ * View-only dialog that surfaces the full details — amount, date, remark, and audit trail —
+ * for a single [advance] row.
+ *
+ * Design constraints:
+ *  - No edit or delete actions; the single button is a "Close" dismissal.
+ *  - Tap outside ([onDismissRequest]) and hardware back both invoke [onDismiss].
+ *  - [AuditInfoCard] renders createdAt as "—" when the row was migrated from v1 (createdAt == 0L).
+ *  - Long remarks are handled via [Modifier.weight(1f)] to prevent clipping.
+ */
+@Composable
+private fun AdvanceDetailDialog(
+    advance: WorkerAdvanceRecord,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor   = SurfaceCard,
+        title = {
+            Text(
+                text       = "Advance Details",
+                color      = TextPrimary,
+                fontSize   = 17.sp,
+                fontWeight = FontWeight.W600
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                // ── Amount ───────────────────────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text          = "AMOUNT",
+                        color         = TextSecondary,
+                        fontSize      = 10.sp,
+                        fontWeight    = FontWeight.W600,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text       = Money.formatRupees(advance.amount),
+                        color      = ErrorRed,
+                        fontSize   = 22.sp,
+                        fontWeight = FontWeight.W600
+                    )
+                }
+
+                // ── Date ─────────────────────────────────────────────────────
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Date:", color = TextSecondary, fontSize = 13.sp)
+                    Text(DateUtils.formatDay(advance.date), color = TextPrimary, fontSize = 13.sp)
+                }
+
+                // ── Remark (shown only when non-blank; weight handles long text) ──
+                if (advance.remark.isNotBlank()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Remark:", color = TextSecondary, fontSize = 13.sp)
+                        Text(
+                            text     = advance.remark,
+                            color    = TextPrimary,
+                            fontSize = 13.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // ── Audit trail ───────────────────────────────────────────────
+                AuditInfoCard(audit = advance.audit.toDisplay())
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = PrimaryBlue, fontSize = 15.sp, fontWeight = FontWeight.W500)
+            }
+        }
+    )
 }

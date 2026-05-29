@@ -21,6 +21,7 @@ object Routes {
     const val ADD_WORKER = "add_worker"          // ?workerId={workerId}
     const val WORKER_TYPE_HISTORY = "worker_type_history" // /{workerId}
     const val ATTENDANCE = "attendance"
+    const val ATTENDANCE_HISTORY = "attendance_history"
     const val ADVANCE_ENTRY = "advance_entry"    // ?workerId={workerId}
 
     const val ADD_PRODUCTION = "add_production"
@@ -32,9 +33,11 @@ object Routes {
 
     const val STOCK_LEDGER = "stock_ledger"      // /{productId}
     const val STOCK_ADJUSTMENT = "stock_adjustment"
+    const val STOCK_ADJUSTMENT_HISTORY = "stock_adjustment_history"
 
     const val EXPENSE = "expense"
     const val ADD_EXPENSE = "add_expense"
+    const val EXPENSE_HISTORY = "expense_history"
 
     const val REPORTS = "reports"
     const val SALARY_REPORT = "salary_report"

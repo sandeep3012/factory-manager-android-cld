@@ -6,6 +6,7 @@ import com.kulhad.manager.data.repository.SaleRepository
 import com.kulhad.manager.data.repository.StockRepository
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.di.SessionManager
+import com.kulhad.manager.di.WorkingDateManager
 import com.kulhad.manager.data.util.Money
 import com.kulhad.manager.domain.model.InsufficientStockException
 import com.kulhad.manager.domain.model.OverpaymentException
@@ -14,6 +15,7 @@ import com.kulhad.manager.domain.model.SaleDetail
 import com.kulhad.manager.domain.model.SaleItemDraft
 import com.kulhad.manager.domain.model.SaleSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,8 +38,20 @@ data class SalesTabData(
 class SalesViewModel @Inject constructor(
     private val saleRepository: SaleRepository,
     private val stockRepository: StockRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val workingDateManager: WorkingDateManager
 ) : ViewModel() {
+
+    // ── Global working date ──────────────────────────────────────────────────
+    /**
+     * The process-scoped working date from [WorkingDateManager].
+     * Delegates the same StateFlow — no state is duplicated.
+     * Sale creation and payment inserts use [workingDateManager.currentEpochMilli] internally.
+     */
+    val workingDate: StateFlow<LocalDate> = workingDateManager.currentWorkingDate
+
+    /** Forwards date selection to [WorkingDateManager]; future dates are silently rejected. */
+    fun setWorkingDate(date: LocalDate) = workingDateManager.setWorkingDate(date)
 
     val tabData: StateFlow<SalesTabData> = run {
         val starts = DateUtils.last7DayStarts()
@@ -100,7 +114,6 @@ class SalesViewModel @Inject constructor(
 
     fun createSale(
         customerName: String,
-        date: Long,
         items: List<SaleItemDraft>,
         onDone: (Long) -> Unit
     ) {
@@ -108,7 +121,7 @@ class SalesViewModel @Inject constructor(
             try {
                 val id = saleRepository.createSale(
                     customerName = customerName,
-                    date = date,
+                    date = workingDateManager.currentEpochMilli(),
                     items = items,
                     userId = sessionManager.currentUserId
                 )
@@ -133,13 +146,12 @@ class SalesViewModel @Inject constructor(
     fun addPayment(
         saleId: Long,
         amount: Int,
-        date: Long,
         remark: String,
         onDone: () -> Unit
     ) {
         viewModelScope.launch {
             try {
-                saleRepository.addPayment(saleId, amount, date, remark)
+                saleRepository.addPayment(saleId, amount, workingDateManager.currentEpochMilli(), remark)
                 onDone()
             } catch (e: OverpaymentException) {
                 _paymentError.value = buildString {

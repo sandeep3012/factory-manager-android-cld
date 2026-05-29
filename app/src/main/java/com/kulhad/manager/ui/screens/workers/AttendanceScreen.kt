@@ -13,8 +13,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.util.DateUtils
+import java.time.ZoneId
 import com.kulhad.manager.ui.charts.SimpleLineChart
 import com.kulhad.manager.ui.components.BadgeType
 import com.kulhad.manager.ui.components.KpiStrip
@@ -39,6 +44,7 @@ import com.kulhad.manager.ui.components.KulhadButtonStyle
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.StatusBadge
 import com.kulhad.manager.ui.components.WorkerAvatar
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
@@ -53,21 +59,26 @@ import com.kulhad.manager.ui.theme.WarningAmber
 @Composable
 fun AttendanceScreen(
     onBack: () -> Unit,
+    onHistory: () -> Unit,
     viewModel: WorkerViewModel = hiltViewModel()
 ) {
     val workers by viewModel.activeWorkers.collectAsStateWithLifecycle()
     val present by viewModel.attendancePresentToday.collectAsStateWithLifecycle()
     val absent by viewModel.attendanceAbsentToday.collectAsStateWithLifecycle()
     val trend by viewModel.attendanceTrend.collectAsStateWithLifecycle()
-    val saved by viewModel.attendanceTodayMap.collectAsStateWithLifecycle()
+    val saved by viewModel.attendanceDateMap.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
 
     val checked = remember { mutableStateMapOf<Long, Boolean>() }
 
+    // Sync checkboxes from the DB whenever the worker list or the saved attendance map
+    // changes. The saved map itself resets whenever workingDate changes (flatMapLatest in
+    // the ViewModel), so changing the date automatically reloads the correct day's state.
+    // No containsKey guard — always overwrite so stale checkbox state never persists
+    // across date changes.
     LaunchedEffect(workers, saved) {
         workers.forEach { w ->
-            if (!checked.containsKey(w.id)) {
-                checked[w.id] = saved[w.id] ?: false
-            }
+            checked[w.id] = saved[w.id] ?: false
         }
     }
 
@@ -85,13 +96,32 @@ fun AttendanceScreen(
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
             title = "Attendance",
-            subtitle = DateUtils.formatDay(System.currentTimeMillis()),
-            onBack = onBack
+            subtitle = DateUtils.formatDay(
+                workingDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            ),
+            onBack = onBack,
+            actions = {
+                IconButton(onClick = onHistory) {
+                    Icon(
+                        imageVector = Icons.Outlined.History,
+                        contentDescription = "Attendance History",
+                        tint = TextPrimary
+                    )
+                }
+            }
         )
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Working date chip — tap to change the global working date
+            item {
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
+                )
+            }
+
             // Trend chart
             item {
                 Column(

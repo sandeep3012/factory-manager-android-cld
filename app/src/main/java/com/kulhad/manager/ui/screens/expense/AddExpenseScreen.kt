@@ -26,10 +26,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.OverlayWhite15
 import com.kulhad.manager.ui.theme.PrimaryBlueDark
@@ -45,12 +45,12 @@ fun AddExpenseScreen(
     viewModel: ExpenseViewModel = hiltViewModel()
 ) {
     val types by viewModel.expenseTypes.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
     var selectedTypeId by remember { mutableStateOf<Long?>(null) }
     var amount by remember { mutableStateOf("") }
     var remark by remember { mutableStateOf("") }
     var newType by remember { mutableStateOf("") }
     var addingType by remember { mutableStateOf(false) }
-    val date = DateUtils.todayStart()
 
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(title = "Add Expense", onBack = onBack)
@@ -140,8 +140,12 @@ fun AddExpenseScreen(
                     onValueChange = { remark = it }
                 )
             }
+            // Working date chip — expense date uses this as business date
             item {
-                Text(text = "Date: ${DateUtils.formatDay(date)}", color = TextSecondary, fontSize = 12.sp)
+                WorkingDateChip(
+                    selectedDate   = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
+                )
             }
             item {
                 KulhadButton(
@@ -150,7 +154,7 @@ fun AddExpenseScreen(
                     onClick = {
                         val tid = selectedTypeId ?: return@KulhadButton
                         val amt = amount.toIntOrNull() ?: return@KulhadButton
-                        viewModel.saveExpense(tid, amt, date, remark) { onBack() }
+                        viewModel.saveExpense(tid, amt, remark) { onBack() }
                     }
                 )
             }

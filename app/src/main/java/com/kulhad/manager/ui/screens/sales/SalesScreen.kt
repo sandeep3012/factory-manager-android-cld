@@ -18,12 +18,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,8 +40,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.Money
+import com.kulhad.manager.data.util.toDisplay
 import com.kulhad.manager.domain.model.SaleStatus
 import com.kulhad.manager.domain.model.SaleSummary
+import com.kulhad.manager.ui.components.AuditInfoCard
 import com.kulhad.manager.ui.charts.SimpleLineChart
 import com.kulhad.manager.ui.components.BadgeType
 import com.kulhad.manager.ui.components.KpiStrip
@@ -43,6 +51,7 @@ import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SaleRowItem
 import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.components.StatusBadge
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
@@ -63,6 +72,16 @@ fun SalesScreen(
     viewModel: SalesViewModel = hiltViewModel()
 ) {
     val data by viewModel.tabData.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
+
+    // ── Sale detail dialog ────────────────────────────────────────────────────
+    var selectedSummary by remember { mutableStateOf<SaleSummary?>(null) }
+    selectedSummary?.let { s ->
+        SaleDetailDialog(
+            summary   = s,
+            onDismiss = { selectedSummary = null }
+        )
+    }
 
     // Demo overlay
     val useDemo = UiDemoData.SHOW_DEMO && data.weekTotal == 0 && data.recent.isEmpty()
@@ -89,6 +108,14 @@ fun SalesScreen(
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Working date chip — tap to change the global working date
+            item {
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
+                )
+            }
+
             // Line chart (matches HTML screen 7)
             item {
                 Column(
@@ -142,7 +169,11 @@ fun SalesScreen(
                 }
             } else {
                 items(data.recent, key = { it.sale.id }) { s ->
-                    RealSaleRow(s) { onSaleClick(s.sale.id) }
+                    RealSaleRow(
+                        s               = s,
+                        onClick         = { selectedSummary = s },
+                        onPaymentsClick = { onSaleClick(s.sale.id) }
+                    )
                 }
             }
         }
@@ -170,8 +201,26 @@ private fun DemoSaleRow(s: UiDemoData.DemoSale) {
     }
 }
 
+/**
+ * A sale list row with two independent click zones:
+ *
+ * - **Main body** (anywhere except the trailing icon) — calls [onClick], which opens
+ *   the [SaleDetailDialog] with audit info.
+ * - **Trailing [ReceiptLong] icon** — calls [onPaymentsClick], navigating to
+ *   [PaymentEntryScreen] for the full payment history + add-payment flow.
+ *
+ * Compose touch propagation ensures [IconButton] consumes its own pointer event —
+ * tapping the icon does NOT trigger the parent Row's [onClick].
+ *
+ * [onPaymentsClick] defaults to a no-op so [SaleCard] (backward-compat alias) compiles
+ * without a third argument.
+ */
 @Composable
-fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
+fun RealSaleRow(
+    s: SaleSummary,
+    onClick: () -> Unit,
+    onPaymentsClick: () -> Unit = {}
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -181,7 +230,7 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Icon box (HTML screen 7 style)
+            // Left: storefront icon box (card-style, HTML screen 7)
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(7.dp))
@@ -192,6 +241,8 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
                 Icon(Icons.Outlined.Storefront, contentDescription = null,
                     tint = InfoBlue, modifier = Modifier.size(17.dp))
             }
+
+            // Middle: customer name + date (takes all remaining width)
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = s.sale.customerName, color = TextPrimary,
                     fontSize = 14.sp, fontWeight = FontWeight.W500)
@@ -200,6 +251,8 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
                     color = TextSecondary, fontSize = 13.sp
                 )
             }
+
+            // Trailing: amount + status badge
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = Money.formatRupees(s.sale.totalAmount),
@@ -211,11 +264,149 @@ fun RealSaleRow(s: SaleSummary, onClick: () -> Unit) {
                     SaleStatus.UNPAID  -> StatusBadge("Unpaid",  BadgeType.ERROR)
                 }
             }
+
+            // Trailing action: navigate to PaymentEntryScreen.
+            // IconButton consumes its own touch — does NOT trigger the Row's clickable.
+            IconButton(
+                onClick  = onPaymentsClick,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector        = Icons.Outlined.ReceiptLong,
+                    contentDescription = "View payments",
+                    tint               = TextSecondary,
+                    modifier           = Modifier.size(18.dp)
+                )
+            }
         }
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(OverlayWhite07))
     }
 }
 
-// Keep old SaleCard for backward compatibility with PaymentEntryScreen etc.
+// Backward-compat alias — onPaymentsClick defaults to no-op via RealSaleRow's default param.
 @Composable
 fun SaleCard(s: SaleSummary, onClick: () -> Unit) = RealSaleRow(s, onClick)
+
+// ── Sale detail dialog ────────────────────────────────────────────────────────
+
+/**
+ * View-only dialog showing the full detail of a single [summary].
+ *
+ * Design constraints:
+ *  - No edit or delete actions.
+ *  - "Close" is the only button. Tap-outside and hardware back also dismiss.
+ *  - [AuditInfoCard] renders createdAt as "—" for migrated rows (createdAt == 0L).
+ *  - [SaleEntity] has no remark column in the schema; none is shown here.
+ */
+@Composable
+private fun SaleDetailDialog(
+    summary: SaleSummary,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor   = SurfaceCard,
+        title = {
+            Text(
+                text       = "Sale Details",
+                color      = TextPrimary,
+                fontSize   = 17.sp,
+                fontWeight = FontWeight.W600
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                // ── Customer (hero value) ─────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text          = "CUSTOMER",
+                        color         = TextSecondary,
+                        fontSize      = 10.sp,
+                        fontWeight    = FontWeight.W600,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text       = summary.sale.customerName,
+                        color      = InfoBlue,
+                        fontSize   = 22.sp,
+                        fontWeight = FontWeight.W600
+                    )
+                }
+
+                // ── Amount breakdown (total / paid / pending) ─────────────
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text          = "TOTAL",
+                            color         = TextSecondary,
+                            fontSize      = 10.sp,
+                            letterSpacing = 0.6.sp
+                        )
+                        Text(
+                            text       = Money.formatRupees(summary.sale.totalAmount),
+                            color      = TextPrimary,
+                            fontSize   = 15.sp,
+                            fontWeight = FontWeight.W500
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text          = "PAID",
+                            color         = TextSecondary,
+                            fontSize      = 10.sp,
+                            letterSpacing = 0.6.sp
+                        )
+                        Text(
+                            text       = Money.formatRupees(summary.paid),
+                            color      = Success,
+                            fontSize   = 15.sp,
+                            fontWeight = FontWeight.W500
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text          = "PENDING",
+                            color         = TextSecondary,
+                            fontSize      = 10.sp,
+                            letterSpacing = 0.6.sp
+                        )
+                        Text(
+                            text       = Money.formatRupees(summary.pending),
+                            color      = ErrorRed,
+                            fontSize   = 15.sp,
+                            fontWeight = FontWeight.W500
+                        )
+                    }
+                }
+
+                // ── Status ────────────────────────────────────────────────
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Status:", color = TextSecondary, fontSize = 13.sp)
+                    when (summary.status) {
+                        SaleStatus.PAID    -> StatusBadge("Paid",    BadgeType.SUCCESS)
+                        SaleStatus.PARTIAL -> StatusBadge("Partial", BadgeType.WARNING)
+                        SaleStatus.UNPAID  -> StatusBadge("Unpaid",  BadgeType.ERROR)
+                    }
+                }
+
+                // ── Date ─────────────────────────────────────────────────
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Date:", color = TextSecondary, fontSize = 13.sp)
+                    Text(DateUtils.formatDay(summary.sale.date), color = TextPrimary, fontSize = 13.sp)
+                }
+
+                // ── Audit trail ───────────────────────────────────────────
+                AuditInfoCard(audit = summary.sale.audit.toDisplay())
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = PrimaryBlue, fontSize = 15.sp, fontWeight = FontWeight.W500)
+            }
+        }
+    )
+}

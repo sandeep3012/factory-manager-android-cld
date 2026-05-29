@@ -12,7 +12,10 @@ import com.kulhad.manager.data.local.entity.SaleEntity
 import com.kulhad.manager.data.local.entity.SaleItemEntity
 import com.kulhad.manager.data.local.entity.StockChangeType
 import com.kulhad.manager.data.local.entity.StockLedgerEntity
+import com.kulhad.manager.data.util.AuditUtils
 import com.kulhad.manager.data.util.DateUtils
+import com.kulhad.manager.di.UserSessionManager
+import com.kulhad.manager.domain.model.AuditInfo
 import com.kulhad.manager.domain.model.Payment
 import com.kulhad.manager.domain.model.Sale
 import com.kulhad.manager.domain.model.SaleDetail
@@ -35,7 +38,8 @@ class SaleRepository @Inject constructor(
     private val saleItemDao: SaleItemDao,
     private val paymentDao: PaymentDao,
     private val stockLedgerDao: StockLedgerDao,
-    private val productDao: ProductDao
+    private val productDao: ProductDao,
+    private val userSessionManager: UserSessionManager
 ) {
 
     /**
@@ -80,33 +84,38 @@ class SaleRepository @Inject constructor(
         // ── End validation — nothing has been written yet ────────────────────
 
         val total  = items.sumOf { it.total }
+        val audit  = AuditUtils.createAudit(userSessionManager.currentUser.value)
         val saleId = saleDao.insert(
             SaleEntity(
-                customerName = customerName,
-                date = DateUtils.startOfDay(date),
-                totalAmount = total,
-                createdBy = userId
+                customerName   = customerName,
+                date           = DateUtils.startOfDay(date),
+                totalAmount    = total,
+                createdBy      = userId,
+                auditCreatedBy = audit.createdBy,
+                auditCreatedAt = audit.createdAt
             )
         )
 
-        val now = System.currentTimeMillis()
+        val now = audit.createdAt   // reuse same timestamp for all ledger rows in this batch
         items.forEach { d ->
             saleItemDao.insert(
                 SaleItemEntity(
-                    saleId = saleId,
-                    productId = d.productId,
-                    quantity = d.quantity,
+                    saleId       = saleId,
+                    productId    = d.productId,
+                    quantity     = d.quantity,
                     pricePerUnit = d.pricePerUnit
                 )
             )
             stockLedgerDao.insert(
                 StockLedgerEntity(
-                    productId = d.productId,
+                    productId      = d.productId,
                     quantityChange = -d.quantity,
-                    changeType = StockChangeType.SALE.name,
-                    remark = "Sale to $customerName",
-                    doneBy = userId,
-                    timestamp = now
+                    changeType     = StockChangeType.SALE.name,
+                    remark         = "Sale to $customerName",
+                    doneBy         = userId,
+                    timestamp      = now,
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
                 )
             )
         }
@@ -139,12 +148,15 @@ class SaleRepository @Inject constructor(
                 )
             }
             // ── Validation passed — nothing written yet ──────────────────────
+            val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
             paymentDao.insert(
                 PaymentEntity(
-                    saleId = saleId,
-                    amount = amount,
-                    date   = DateUtils.startOfDay(date),
-                    remark = remark
+                    saleId         = saleId,
+                    amount         = amount,
+                    date           = DateUtils.startOfDay(date),
+                    remark         = remark,
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
                 )
             )
         }
@@ -187,11 +199,17 @@ class SaleRepository @Inject constructor(
                 },
                 payments = payments.map { p ->
                     Payment(
-                        id = p.id,
+                        id     = p.id,
                         saleId = p.saleId,
                         amount = p.amount,
-                        date = p.date,
-                        remark = p.remark
+                        date   = p.date,
+                        remark = p.remark,
+                        audit  = AuditInfo(
+                            createdBy = p.auditCreatedBy,
+                            createdAt = p.auditCreatedAt,
+                            updatedBy = p.auditUpdatedBy,
+                            updatedAt = p.auditUpdatedAt
+                        )
                     )
                 },
                 paid = paid,
@@ -233,11 +251,17 @@ class SaleRepository @Inject constructor(
         saleDao.observeTotalInRange(DateUtils.todayStart(), DateUtils.todayEnd())
 
     private fun SaleEntity.toDomain(): Sale = Sale(
-        id = id,
+        id           = id,
         customerName = customerName,
-        date = date,
-        totalAmount = totalAmount,
-        createdBy = createdBy
+        date         = date,
+        totalAmount  = totalAmount,
+        createdBy    = createdBy,
+        audit        = AuditInfo(
+            createdBy = auditCreatedBy,
+            createdAt = auditCreatedAt,
+            updatedBy = auditUpdatedBy,
+            updatedAt = auditUpdatedAt
+        )
     )
 
     private fun SaleEntity.toSummary(paid: Int): SaleSummary {

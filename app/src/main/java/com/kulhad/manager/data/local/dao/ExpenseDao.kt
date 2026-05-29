@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.kulhad.manager.data.local.entity.ExpenseEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +13,14 @@ interface ExpenseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(expense: ExpenseEntity): Long
+
+    /** Full-row update — used by the expense edit flow to change type/amount/remark and stamp audit. */
+    @Update
+    suspend fun update(expense: ExpenseEntity)
+
+    /** Load a single expense row by primary key — needed before updating to read existing audit fields. */
+    @Query("SELECT * FROM expenses WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): ExpenseEntity?
 
     @Query("SELECT * FROM expenses ORDER BY date DESC, id DESC")
     fun observeAll(): Flow<List<ExpenseEntity>>

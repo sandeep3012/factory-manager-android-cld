@@ -6,16 +6,17 @@ import com.kulhad.manager.data.repository.ProductionRepository
 import com.kulhad.manager.data.repository.WorkerRepository
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.di.SessionManager
+import com.kulhad.manager.di.WorkingDateManager
 import com.kulhad.manager.domain.model.Product
 import com.kulhad.manager.domain.model.ProductWithRate
 import com.kulhad.manager.domain.model.ProductionEntry
 import com.kulhad.manager.domain.model.Worker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -34,8 +35,20 @@ data class ProductionStats(
 class ProductionViewModel @Inject constructor(
     private val productionRepository: ProductionRepository,
     private val workerRepository: WorkerRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val workingDateManager: WorkingDateManager
 ) : ViewModel() {
+
+    // ── Global working date ──────────────────────────────────────────────────
+    /**
+     * The process-scoped working date from [WorkingDateManager].
+     * Delegates the same StateFlow — no state is duplicated.
+     * Production entry saves use [workingDateManager.currentEpochMilli] internally.
+     */
+    val workingDate: StateFlow<LocalDate> = workingDateManager.currentWorkingDate
+
+    /** Forwards date selection to [WorkingDateManager]; future dates are silently rejected. */
+    fun setWorkingDate(date: LocalDate) = workingDateManager.setWorkingDate(date)
 
     val activeWorkers: StateFlow<List<Worker>> = workerRepository.observeActiveWorkers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -73,19 +86,24 @@ class ProductionViewModel @Inject constructor(
         )
     }
 
-    private val _historyMonth = MutableStateFlow(System.currentTimeMillis())
-    val historyMonth: StateFlow<Long> = _historyMonth.asStateFlow()
-
+    /**
+     * Production entries for the currently selected [workingDate], newest first.
+     *
+     * Re-queries whenever the global working date changes via [WorkingDateManager].
+     * Uses [flatMapLatest] so the previous DB subscription is cancelled on every date
+     * change — stale data from a previous day cannot leak through.
+     *
+     * Powered by [ProductionRepository.observeEntriesForDay] which normalises the date
+     * to start-of-day / end-of-day bounds internally.
+     */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val historyEntries: StateFlow<List<ProductionEntry>> = _historyMonth
-        .flatMapLatest { anchor ->
-            val from = DateUtils.startOfMonth(anchor)
-            val to = DateUtils.endOfMonth(anchor)
-            productionRepository.observeEntriesInRange(from, to)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    fun setHistoryMonth(anchor: Long) { _historyMonth.value = anchor }
+    val historyDayEntries: StateFlow<List<ProductionEntry>> =
+        workingDateManager.currentWorkingDate
+            .flatMapLatest { date ->
+                val epochMilli = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                productionRepository.observeEntriesForDay(epochMilli)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     suspend fun rateFor(productId: Long): Double = productionRepository.currentRate(productId)
 
@@ -94,7 +112,6 @@ class ProductionViewModel @Inject constructor(
         productId: Long,
         quantity: Int,
         defective: Int,
-        date: Long,
         onDone: (Long) -> Unit
     ) {
         viewModelScope.launch {
@@ -104,7 +121,7 @@ class ProductionViewModel @Inject constructor(
                     productId = productId,
                     quantity = quantity,
                     defective = defective,
-                    date = date,
+                    date = workingDateManager.currentEpochMilli(),
                     userId = sessionManager.currentUserId
                 )
                 onDone(id)

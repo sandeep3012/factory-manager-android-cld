@@ -1,6 +1,7 @@
 package com.kulhad.manager.ui.screens.sales
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,13 +33,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.Money
+import com.kulhad.manager.data.util.toDisplay
+import com.kulhad.manager.domain.model.Payment
 import com.kulhad.manager.ui.charts.ProgressBar
+import com.kulhad.manager.ui.components.AuditInfoCard
 import com.kulhad.manager.ui.components.KpiStrip
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadButtonStyle
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
 import com.kulhad.manager.ui.theme.OverlayWhite07
@@ -56,9 +61,10 @@ fun PaymentEntryScreen(
 ) {
     val detail       by viewModel.observeSaleDetail(saleId).collectAsStateWithLifecycle(null)
     val paymentError by viewModel.paymentError.collectAsStateWithLifecycle()
-    var amount by remember { mutableStateOf("") }
-    var remark by remember { mutableStateOf("") }
-    val date = DateUtils.todayStart()
+    val workingDate  by viewModel.workingDate.collectAsStateWithLifecycle()
+    var amount          by remember { mutableStateOf("") }
+    var remark          by remember { mutableStateOf("") }
+    var selectedPayment by remember { mutableStateOf<Payment?>(null) }
 
     // ── Overpayment error dialog ─────────────────────────────────────────────
     paymentError?.let { errorMessage ->
@@ -85,6 +91,14 @@ fun PaymentEntryScreen(
                 }
             },
             containerColor = SurfaceCard
+        )
+    }
+
+    // ── Payment detail dialog (view-only, tap outside / back to close) ───────
+    selectedPayment?.let { p ->
+        PaymentDetailDialog(
+            payment   = p,
+            onDismiss = { selectedPayment = null }
         )
     }
 
@@ -166,10 +180,11 @@ fun PaymentEntryScreen(
                     onValueChange = { remark = it }
                 )
             }
+            // Working date chip — date is read from WorkingDateManager inside addPayment()
             item {
-                Text(
-                    text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary, fontSize = 12.sp
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
                 )
             }
             item {
@@ -179,7 +194,7 @@ fun PaymentEntryScreen(
                     enabled = (amount.toIntOrNull() ?: 0) > 0,
                     onClick = {
                         val amt = amount.toIntOrNull() ?: return@KulhadButton
-                        viewModel.addPayment(saleId, amt, date, remark) {
+                        viewModel.addPayment(saleId, amt, remark) {
                             amount = ""
                             remark = ""
                         }
@@ -197,6 +212,7 @@ fun PaymentEntryScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clickable { selectedPayment = p }
                                     .padding(vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -224,4 +240,82 @@ fun PaymentEntryScreen(
             }
         }
     }
+}
+
+// ── Payment detail dialog ─────────────────────────────────────────────────────
+
+/**
+ * View-only dialog that surfaces the full details — amount, date, remark, and audit trail —
+ * for a single [payment] row.
+ *
+ * Design constraints:
+ *  - No edit or delete actions; [confirmButton] is a single "Close" dismissal.
+ *  - Tap outside ([onDismissRequest]) and hardware back both invoke [onDismiss].
+ *  - [AuditInfoCard] renders createdAt as "—" when the row was migrated from v1 (createdAt == 0L).
+ */
+@Composable
+private fun PaymentDetailDialog(
+    payment: Payment,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor   = SurfaceCard,
+        title = {
+            Text(
+                text       = "Payment Details",
+                color      = TextPrimary,
+                fontSize   = 17.sp,
+                fontWeight = FontWeight.W600
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                // ── Amount ───────────────────────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text          = "AMOUNT",
+                        color         = TextSecondary,
+                        fontSize      = 10.sp,
+                        fontWeight    = FontWeight.W600,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text       = Money.formatRupees(payment.amount),
+                        color      = Success,
+                        fontSize   = 22.sp,
+                        fontWeight = FontWeight.W600
+                    )
+                }
+
+                // ── Date ─────────────────────────────────────────────────────
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Date:", color = TextSecondary, fontSize = 13.sp)
+                    Text(DateUtils.formatDay(payment.date), color = TextPrimary, fontSize = 13.sp)
+                }
+
+                // ── Remark (shown only when non-blank) ────────────────────────
+                if (payment.remark.isNotBlank()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Remark:", color = TextSecondary, fontSize = 13.sp)
+                        Text(
+                            text       = payment.remark,
+                            color      = TextPrimary,
+                            fontSize   = 13.sp,
+                            modifier   = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // ── Audit trail ───────────────────────────────────────────────
+                AuditInfoCard(audit = payment.audit.toDisplay())
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = PrimaryBlue, fontSize = 15.sp, fontWeight = FontWeight.W500)
+            }
+        }
+    )
 }

@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kulhad.manager.ui.components.bottomSheetContentInsets
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.Money
 import com.kulhad.manager.domain.model.SaleItemDraft
 import com.kulhad.manager.ui.components.KulhadButton
@@ -50,6 +49,7 @@ import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.components.SizePillGrid
+import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.PrimaryBlue
 import com.kulhad.manager.ui.theme.Success
@@ -65,8 +65,8 @@ fun CreateSaleScreen(
 ) {
     val products by viewModel.products.collectAsStateWithLifecycle()
     val saleError by viewModel.saleError.collectAsStateWithLifecycle()
+    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
     var customerName by remember { mutableStateOf("") }
-    val date = DateUtils.todayStart()
     val items = remember { mutableStateListOf<SaleItemDraft>() }
     var showSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
@@ -87,10 +87,9 @@ fun CreateSaleScreen(
                 )
             }
             item {
-                Text(
-                    text = "Date: ${DateUtils.formatDay(date)}",
-                    color = TextSecondary,
-                    fontSize = 17.sp
+                WorkingDateChip(
+                    selectedDate = workingDate,
+                    onDateSelected = { viewModel.setWorkingDate(it) }
                 )
             }
             item { SectionHeader(text = "Items") }
@@ -162,7 +161,7 @@ fun CreateSaleScreen(
                     text = "Save Sale",
                     enabled = customerName.isNotBlank() && items.isNotEmpty(),
                     onClick = {
-                        viewModel.createSale(customerName.trim(), date, items.toList()) {
+                        viewModel.createSale(customerName.trim(), items.toList()) {
                             onBack()
                         }
                     }
