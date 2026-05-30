@@ -170,7 +170,7 @@ fun ProductionScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "${p.product.sizeMl}ml",
+                                    text = p.product.displayLabel,
                                     color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.W500
                                 )
                                 Text(

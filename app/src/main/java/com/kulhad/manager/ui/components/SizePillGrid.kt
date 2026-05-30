@@ -22,13 +22,21 @@ import com.kulhad.manager.ui.theme.PrimaryBlueLight
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextTertiary
 
+/**
+ * Grid of pill chips for selecting a kulhad size.
+ *
+ * [sizes] is the list of sizeMl values used as keys.
+ * [labels] is an optional map of sizeMl → display label (e.g. "80ml", "Half Litre").
+ * Falls back to "${size}ml" when a label is missing from the map.
+ */
 @Composable
 fun SizePillGrid(
     sizes: List<Int>,
     selected: Int?,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    columns: Int = 4
+    columns: Int = 4,
+    labels: Map<Int, String> = emptyMap()
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -51,7 +59,7 @@ fun SizePillGrid(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "${size}ml",
+                            text = labels[size] ?: "${size}ml",
                             color = if (isSelected) PrimaryBlueLight else TextTertiary,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.W600 else FontWeight.W500

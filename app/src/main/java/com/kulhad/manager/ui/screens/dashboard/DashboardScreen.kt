@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.AddCard
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.PrecisionManufacturing
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,6 +63,7 @@ fun DashboardScreen(
     onAddExpense: () -> Unit,
     onOpenReports: () -> Unit,
     onOpenStock: () -> Unit,
+    onOpenMasters: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -193,6 +195,7 @@ fun DashboardScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ShortcutTile("Reports", Icons.Outlined.Checklist,  Modifier.weight(1f), onOpenReports)
                             ShortcutTile("Stock",   Icons.Outlined.Inventory2, Modifier.weight(1f), onOpenStock)
+                            ShortcutTile("Masters", Icons.Outlined.Tune,       Modifier.weight(1f), onOpenMasters)
                         }
                     }
                 }

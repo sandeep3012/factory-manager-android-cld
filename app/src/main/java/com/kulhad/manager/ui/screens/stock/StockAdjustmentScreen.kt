@@ -70,7 +70,8 @@ fun StockAdjustmentScreen(
             item { SectionHeader(text = "Product size") }
             item {
                 SizePillGrid(
-                    sizes = products.map { it.sizeMl },
+                    sizes    = products.map { it.sizeMl },
+                    labels   = products.associate { it.sizeMl to it.displayLabel },
                     selected = sizeMl,
                     onSelect = { sizeMl = it }
                 )

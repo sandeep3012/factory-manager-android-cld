@@ -141,7 +141,8 @@ fun AddProductionScreen(
             item { SectionHeader(text = "Kulhad size") }
             item {
                 SizePillGrid(
-                    sizes = products.map { it.product.sizeMl },
+                    sizes    = products.map { it.product.sizeMl },
+                    labels   = products.associate { it.product.sizeMl to it.product.displayLabel },
                     selected = sizeMl,
                     onSelect = { sizeMl = it }
                 )
