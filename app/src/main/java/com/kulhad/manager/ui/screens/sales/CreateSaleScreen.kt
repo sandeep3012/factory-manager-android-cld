@@ -44,6 +44,7 @@ import com.kulhad.manager.ui.components.bottomSheetContentInsets
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.util.Money
 import com.kulhad.manager.domain.model.SaleItemDraft
+import kotlin.math.roundToInt
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
@@ -110,8 +111,13 @@ fun CreateSaleScreen(
                             fontSize = 17.sp,
                             fontWeight = FontWeight.W500
                         )
+                        // Use priceDisplay so decimal prices (e.g. "3.56") show exactly
+                        // what the user entered rather than the rounded integer approximation.
+                        val displayPrice = d.priceDisplay.toDoubleOrNull()
+                            ?.let { Money.formatRupeesDouble(it) }
+                            ?: Money.formatRupees(d.pricePerUnit)
                         Text(
-                            text = "${d.quantity} × ${Money.formatRupees(d.pricePerUnit)}",
+                            text = "${d.quantity} × $displayPrice",
                             color = TextSecondary,
                             fontSize = 17.sp
                         )
@@ -224,16 +230,24 @@ private fun AddItemSheet(
     onAdd: (SaleItemDraft) -> Unit
 ) {
     var sizeMl by remember { mutableStateOf<Int?>(null) }
-    var qty by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
+    var qty    by remember { mutableStateOf("") }
+    var price  by remember { mutableStateOf("") }
 
     val selectedId = products.firstOrNull { it.sizeMl == sizeMl }?.id
     val stock by (selectedId?.let { viewModel.observeStockFor(it) }
         ?: kotlinx.coroutines.flow.flowOf(0)).collectAsStateWithLifecycle(0)
 
     val qtyInt = qty.toIntOrNull() ?: 0
-    val priceInt = price.toIntOrNull() ?: 0
-    val total = qtyInt * priceInt
+
+    // Parse as Double so the user can enter values like 3.56, 3.5, or 10.
+    // "3." parses to 3.0 (trailing dot is valid mid-input), "." parses to null → 0.0.
+    val priceDouble = price.toDoubleOrNull() ?: 0.0
+
+    // Decimal-aware line total — rounded to the nearest integer rupee.
+    // Examples: 4 × 3.56 = 14.24 → 14 ; 4 × 3.75 = 15.0 → 15 ; 100 × 3.25 = 325.0 → 325
+    val totalRounded: Int = if (qtyInt > 0 && priceDouble > 0.0)
+        (qtyInt.toDouble() * priceDouble).roundToInt()
+    else 0
 
     val maxScrollHeight = (LocalConfiguration.current.screenHeightDp * 0.55f).dp
 
@@ -264,6 +278,7 @@ private fun AddItemSheet(
                     Text(text = "Available stock: $stock", color = TextSecondary, fontSize = 13.sp)
                 }
             }
+            // Quantity — integers only; no decimal allowed
             item {
                 KulhadTextField(
                     label = "Quantity",
@@ -272,20 +287,40 @@ private fun AddItemSheet(
                     keyboardType = KeyboardType.Number
                 )
             }
+            // Price per unit — decimal allowed (e.g. 3.56, 3.5, 10.00).
+            // Filter: digits and at most ONE decimal point.
             item {
                 KulhadTextField(
                     label = "Price per unit (₹)",
                     value = price,
-                    onValueChange = { price = it.filter { ch -> ch.isDigit() } },
-                    keyboardType = KeyboardType.Number
+                    onValueChange = { input ->
+                        val filtered = input.filter { it.isDigit() || it == '.' }
+                        // Allow update only if there is at most one decimal point
+                        if (filtered.count { it == '.' } <= 1) price = filtered
+                    },
+                    keyboardType = KeyboardType.Decimal
                 )
             }
+            // Live calculated amount — updates on every keystroke.
+            // Shows the exact rounded integer rupee total the user will be charged.
             item {
-                Text(
-                    text = "Item total: ${Money.formatRupees(total)}",
-                    color = Success,
-                    fontSize = 17.sp
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Calculated Amount",
+                        color = TextSecondary,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = Money.formatRupees(totalRounded),
+                        color = Success,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.W600
+                    )
+                }
             }
         }
         KulhadButton(
@@ -293,15 +328,22 @@ private fun AddItemSheet(
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 16.dp),
             text = "Add to sale",
-            enabled = sizeMl != null && qtyInt > 0 && priceInt > 0,
+            enabled = sizeMl != null && qtyInt > 0 && priceDouble > 0.0,
             onClick = {
                 val product = products.firstOrNull { it.sizeMl == sizeMl } ?: return@KulhadButton
                 onAdd(
                     SaleItemDraft(
-                        productId = product.id,
-                        productSize = product.sizeMl,
-                        quantity = qtyInt,
-                        pricePerUnit = priceInt
+                        productId        = product.id,
+                        productSize      = product.sizeMl,
+                        quantity         = qtyInt,
+                        // Store nearest-integer approximation of the decimal price in the
+                        // DB column (INTEGER).  The authoritative sale total comes from
+                        // precomputedTotal; the stored per-unit value is only cosmetic.
+                        pricePerUnit     = priceDouble.roundToInt().coerceAtLeast(1),
+                        // Preserve the raw decimal string for display in the items list.
+                        priceDisplay     = price,
+                        // The correctly rounded total — this is what SaleRepository sums.
+                        precomputedTotal = totalRounded
                     )
                 )
             }

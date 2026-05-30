@@ -66,12 +66,35 @@ data class Payment(
     val audit: AuditInfo
 )
 
-/** Draft used by the Create Sale screen before persisting. */
+/**
+ * Draft used by the Create Sale screen before persisting.
+ *
+ * For whole-rupee prices (integer input), all four fields carry their natural values
+ * and callers need not supply the two optional parameters.
+ *
+ * For decimal prices (e.g. ₹3.56 per unit):
+ *  - [pricePerUnit] stores the nearest-integer approximation (3.56 → 4) for the
+ *    [SaleItemEntity] DB column, which is typed INTEGER.  No existing query reads
+ *    per-unit prices back for arithmetic — only [SaleEntity.totalAmount] is used
+ *    for payment and report calculations — so this approximation is invisible to users.
+ *  - [priceDisplay] carries the exact string the user typed ("3.56") so the
+ *    in-progress items list can show the true decimal value before the sale is saved.
+ *  - [precomputedTotal] is (quantity × decimalPrice).roundToInt() — the correctly
+ *    rounded integer total that will be stored in [SaleEntity.totalAmount].
+ *
+ * All existing call sites that pass only the first four positional arguments compile
+ * unchanged; both new parameters default to the integer-arithmetic values.
+ */
 data class SaleItemDraft(
     val productId: Long,
     val productSize: Int,
     val quantity: Int,
-    val pricePerUnit: Int
+    val pricePerUnit: Int,
+    /** Raw price string as entered by the user (e.g. "3.56", "10", "3.5"). */
+    val priceDisplay: String = pricePerUnit.toString(),
+    /** Decimal-rounded line total; equals [quantity] × [pricePerUnit] by default. */
+    val precomputedTotal: Int = quantity * pricePerUnit
 ) {
-    val total: Int get() = quantity * pricePerUnit
+    /** Returns [precomputedTotal] — the authoritative line total used by the repository. */
+    val total: Int get() = precomputedTotal
 }
