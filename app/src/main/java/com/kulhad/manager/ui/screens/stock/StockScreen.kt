@@ -70,7 +70,8 @@ fun StockScreen(
         }
     } else {
         val max = items.maxOfOrNull { it.quantity }?.coerceAtLeast(1) ?: 1
-        items.map { StockRow(it.product.id, "${it.product.sizeMl}ml", it.quantity, max) }
+        // Use displayLabel — respects custom labels set in Product Master (e.g. "Half Litre")
+        items.map { StockRow(it.product.id, it.product.displayLabel, it.quantity, max) }
     }
 
     val totalQty   = displayItems.sumOf { it.qty }
@@ -156,10 +157,8 @@ fun StockScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            if (!useDemo) {
-                                val realItem = items.find { "${it.product.sizeMl}ml" == row.label }
-                                realItem?.let { onLedger(it.product.id) }
-                            }
+                            // row.id == it.product.id — no secondary lookup required
+                            if (!useDemo) onLedger(row.id)
                         }
                         .padding(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(5.dp)

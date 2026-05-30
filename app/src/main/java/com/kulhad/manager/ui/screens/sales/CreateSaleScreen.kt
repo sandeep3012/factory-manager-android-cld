@@ -268,7 +268,8 @@ private fun AddItemSheet(
             }
             item {
                 SizePillGrid(
-                    sizes = products.map { it.sizeMl },
+                    sizes    = products.map { it.sizeMl },
+                    labels   = products.associate { it.sizeMl to it.displayLabel },
                     selected = sizeMl,
                     onSelect = { sizeMl = it }
                 )

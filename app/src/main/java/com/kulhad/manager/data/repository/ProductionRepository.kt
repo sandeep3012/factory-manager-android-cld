@@ -226,5 +226,17 @@ class ProductionRepository @Inject constructor(
         productionDao.netQtyForWorkerInRange(workerId, from, to)
 }
 
-internal fun ProductEntity.toDomain(): Product =
-    Product(id = id, sizeMl = sizeMl, description = description, isActive = isActive)
+internal fun ProductEntity.toDomain(): Product = Product(
+    id           = id,
+    sizeMl       = sizeMl,
+    description  = description,
+    isActive     = isActive,
+    displayLabel = displayLabel.ifBlank { "${sizeMl}ml" },  // fallback for migrated rows
+    displayOrder = displayOrder,
+    audit        = AuditInfo(
+        createdBy = auditCreatedBy,
+        createdAt = auditCreatedAt,
+        updatedBy = auditUpdatedBy,
+        updatedAt = auditUpdatedAt
+    )
+)

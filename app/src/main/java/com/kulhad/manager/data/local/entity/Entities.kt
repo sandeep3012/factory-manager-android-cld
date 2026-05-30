@@ -87,7 +87,17 @@ data class ProductEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "size_ml") val sizeMl: Int,
     val description: String,
-    @ColumnInfo(name = "is_active", defaultValue = "1") val isActive: Boolean = true
+    @ColumnInfo(name = "is_active", defaultValue = "1") val isActive: Boolean = true,
+    // ── Product Master additions (MIGRATION_3_4) ──────────────────────────────
+    /** Human-readable label shown in pickers (e.g. "80ml", "Half Litre"). Defaults to "<sizeMl>ml". */
+    @ColumnInfo(name = "display_label", defaultValue = "''") val displayLabel: String = "",
+    /** Controls ordering in all product pickers; lower = first. Defaults to sizeMl so existing order is preserved. */
+    @ColumnInfo(name = "display_order", defaultValue = "0") val displayOrder: Int = 0,
+    // Audit columns — same pattern as every other audited table.
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================

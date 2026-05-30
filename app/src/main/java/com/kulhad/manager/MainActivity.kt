@@ -37,6 +37,8 @@ import com.kulhad.manager.ui.screens.sales.CreateSaleScreen
 import com.kulhad.manager.ui.screens.sales.PaymentEntryScreen
 import com.kulhad.manager.ui.screens.sales.PendingPaymentsScreen
 import com.kulhad.manager.ui.screens.sales.SalesScreen
+import com.kulhad.manager.ui.screens.masters.MastersScreen
+import com.kulhad.manager.ui.screens.masters.ProductMasterScreen
 import com.kulhad.manager.ui.screens.stock.StockAdjustmentHistoryScreen
 import com.kulhad.manager.ui.screens.stock.StockAdjustmentScreen
 import com.kulhad.manager.ui.screens.stock.StockLedgerScreen
@@ -104,12 +106,13 @@ class MainActivity : ComponentActivity() {
                             // ── Dashboard ────────────────────────────────────────────────────────
                             composable(Routes.DASHBOARD) {
                                 DashboardScreen(
-                                    onAttendance = { navController.navigate(Routes.ATTENDANCE) },
+                                    onAttendance  = { navController.navigate(Routes.ATTENDANCE) },
                                     onAddProduction = { navController.navigate(Routes.ADD_PRODUCTION) },
-                                    onCreateSale = { navController.navigate(Routes.CREATE_SALE) },
+                                    onCreateSale  = { navController.navigate(Routes.CREATE_SALE) },
                                     onAddExpense  = { navController.navigate(Routes.EXPENSE) },
                                     onOpenReports = { navController.navigate(Routes.REPORTS) },
-                                    onOpenStock = { navController.navigate(Routes.STOCK) }
+                                    onOpenStock   = { navController.navigate(Routes.STOCK) },
+                                    onOpenMasters = { navController.navigate(Routes.MASTERS) }
                                 )
                             }
 
@@ -303,6 +306,18 @@ class MainActivity : ComponentActivity() {
 
                             composable(Routes.SALES_REPORT) {
                                 SalesReportScreen(onBack = { navController.popBackStack() })
+                            }
+
+                            // ── Masters ───────────────────────────────────────────────────────────
+                            composable(Routes.MASTERS) {
+                                MastersScreen(
+                                    onBack          = { navController.popBackStack() },
+                                    onProductMaster = { navController.navigate(Routes.PRODUCT_MASTER) }
+                                )
+                            }
+
+                            composable(Routes.PRODUCT_MASTER) {
+                                ProductMasterScreen(onBack = { navController.popBackStack() })
                             }
                         }
                     }

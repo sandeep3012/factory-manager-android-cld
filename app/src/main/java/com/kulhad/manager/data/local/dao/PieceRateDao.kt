@@ -33,4 +33,13 @@ interface PieceRateDao {
             "ORDER BY effective_from DESC"
     )
     fun observeHistory(productId: Long): Flow<List<PieceRateEntity>>
+
+    /**
+     * Observe the entire piece_rates table.
+     * Used as a reactive trigger in [ProductMasterViewModel] — whenever any rate row is
+     * inserted, this Flow re-emits and forces the combined product+rate Flow to reload
+     * fresh rate values for every product.
+     */
+    @Query("SELECT * FROM piece_rates")
+    fun observeAllRates(): Flow<List<PieceRateEntity>>
 }

@@ -55,7 +55,7 @@ import com.kulhad.manager.data.util.PasswordHasher
         ExpenseEntity::class,
         WorkerAdvanceEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true  // writes app/schemas/…/<version>.json — commit to git
 )
 @TypeConverters(Converters::class)
@@ -114,7 +114,7 @@ abstract class KulhadDatabase : RoomDatabase() {
         override fun onCreate(db: SupportSQLiteDatabase) {
             val now = System.currentTimeMillis()
 
-            // Products
+            // Products — display_order = size_ml keeps the same ascending sort on fresh installs.
             val sizes = intArrayOf(60, 70, 80, 90, 100, 120, 200, 250)
             for (size in sizes) {
                 db.insert(
@@ -123,6 +123,10 @@ abstract class KulhadDatabase : RoomDatabase() {
                         put("size_ml", size)
                         put("description", "${size}ml Kulhad")
                         put("is_active", 1)
+                        put("display_label", "${size}ml")
+                        put("display_order", size)
+                        put("audit_created_by", "System")
+                        put("audit_created_at", now)
                     }
                 )
             }

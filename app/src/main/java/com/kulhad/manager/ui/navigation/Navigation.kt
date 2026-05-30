@@ -45,6 +45,12 @@ object Routes {
     const val PRODUCTION_REPORT = "production_report"
     const val SALES_REPORT = "sales_report"
 
+    // ── Masters (Phase 1: Product Master) ──────────────────────────────────────
+    /** Hub screen listing all master data sections. */
+    const val MASTERS = "masters"
+    /** Product / Kulhad-size master CRUD screen. */
+    const val PRODUCT_MASTER = "product_master"
+
     fun addWorker(workerId: Long? = null): String =
         if (workerId == null) ADD_WORKER else "$ADD_WORKER?workerId=$workerId"
 

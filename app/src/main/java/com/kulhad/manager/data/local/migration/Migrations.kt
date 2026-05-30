@@ -160,8 +160,37 @@ object Migrations {
     }
 
     /**
+     * v3 → v4: Product Master — add display_label, display_order, and 4 audit columns
+     * to the `products` table.
+     *
+     * display_label defaults to '' (empty string) for existing rows; the ProductMasterViewModel
+     * will lazily derive it from size_ml on the first edit, or the DAO can return sizeMl as
+     * fallback when displayLabel is blank.
+     *
+     * display_order defaults to 0 for all existing rows; users can reorder via the
+     * Product Master screen after upgrading. The DAO secondary sort (size_ml ASC) preserves
+     * the pre-migration visual order when all rows have display_order == 0.
+     *
+     * audit_* columns use the same 'System'/0/NULL/NULL sentinel values as every other table.
+     */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `products` ADD COLUMN `display_label` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE `products` ADD COLUMN `display_order` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `products` ADD COLUMN `audit_created_by` TEXT NOT NULL DEFAULT 'System'")
+            db.execSQL("ALTER TABLE `products` ADD COLUMN `audit_created_at` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `products` ADD COLUMN `audit_updated_by` TEXT DEFAULT NULL")
+            db.execSQL("ALTER TABLE `products` ADD COLUMN `audit_updated_at` INTEGER DEFAULT NULL")
+            // Back-fill display_label from size_ml for existing rows (e.g. 80 → "80ml").
+            db.execSQL("UPDATE `products` SET `display_label` = CAST(`size_ml` AS TEXT) || 'ml' WHERE `display_label` = ''")
+            // Back-fill display_order = size_ml so existing sort order is preserved.
+            db.execSQL("UPDATE `products` SET `display_order` = `size_ml` WHERE `display_order` = 0")
+        }
+    }
+
+    /**
      * All migrations in ascending version order.
      * Room applies them sequentially — add new ones at the end of the array.
      */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }
