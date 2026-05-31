@@ -112,4 +112,7 @@ dependencies {
     implementation(libs.vico.compose)
     implementation(libs.vico.compose.m3)
     implementation(libs.vico.core)
+
+    // JSON serialization for Backup / Restore
+    implementation(libs.gson)
 }

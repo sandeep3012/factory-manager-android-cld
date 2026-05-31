@@ -8,6 +8,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kulhad.manager.data.local.dao.AttendanceDao
+import com.kulhad.manager.data.local.dao.BackupDao
 import com.kulhad.manager.data.local.dao.ExpenseDao
 import com.kulhad.manager.data.local.dao.ExpenseTypeDao
 import com.kulhad.manager.data.local.dao.PaymentDao
@@ -63,6 +64,7 @@ abstract class KulhadDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao
     abstract fun workerDao(): WorkerDao
+    abstract fun backupDao(): BackupDao
     abstract fun workerTypeHistoryDao(): WorkerTypeHistoryDao
     abstract fun productDao(): ProductDao
     abstract fun pieceRateDao(): PieceRateDao

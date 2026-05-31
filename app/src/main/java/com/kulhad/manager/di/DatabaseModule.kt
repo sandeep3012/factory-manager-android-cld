@@ -3,6 +3,7 @@ package com.kulhad.manager.di
 import android.content.Context
 import com.kulhad.manager.data.local.KulhadDatabase
 import com.kulhad.manager.data.local.dao.AttendanceDao
+import com.kulhad.manager.data.local.dao.BackupDao
 import com.kulhad.manager.data.local.dao.ExpenseDao
 import com.kulhad.manager.data.local.dao.ExpenseTypeDao
 import com.kulhad.manager.data.local.dao.PaymentDao
@@ -48,4 +49,5 @@ object DatabaseModule {
     @Provides fun provideExpenseDao(db: KulhadDatabase): ExpenseDao = db.expenseDao()
     @Provides fun provideWorkerAdvanceDao(db: KulhadDatabase): WorkerAdvanceDao =
         db.workerAdvanceDao()
+    @Provides fun provideBackupDao(db: KulhadDatabase): BackupDao = db.backupDao()
 }
