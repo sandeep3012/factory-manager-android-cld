@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.AddCard
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.PrecisionManufacturing
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -64,6 +65,7 @@ fun DashboardScreen(
     onOpenReports: () -> Unit,
     onOpenStock: () -> Unit,
     onOpenMasters: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -193,9 +195,10 @@ fun DashboardScreen(
                     item { SectionHeader(text = "Shortcuts") }
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ShortcutTile("Reports", Icons.Outlined.Checklist,  Modifier.weight(1f), onOpenReports)
-                            ShortcutTile("Stock",   Icons.Outlined.Inventory2, Modifier.weight(1f), onOpenStock)
-                            ShortcutTile("Masters", Icons.Outlined.Tune,       Modifier.weight(1f), onOpenMasters)
+                            ShortcutTile("Reports",  Icons.Outlined.Checklist,  Modifier.weight(1f), onOpenReports)
+                            ShortcutTile("Stock",    Icons.Outlined.Inventory2, Modifier.weight(1f), onOpenStock)
+                            ShortcutTile("Masters",  Icons.Outlined.Tune,       Modifier.weight(1f), onOpenMasters)
+                            ShortcutTile("Settings", Icons.Outlined.Settings,   Modifier.weight(1f), onOpenSettings)
                         }
                     }
                 }

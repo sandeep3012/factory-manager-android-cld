@@ -17,6 +17,9 @@ object DateUtils {
         get() = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
     private val auditTimeFmt: SimpleDateFormat
         get() = SimpleDateFormat("d MMM yyyy, h:mm a", Locale.getDefault())
+    /** Safe for filenames on all file systems — no slashes, colons, or spaces. */
+    private val filenameFmt: SimpleDateFormat
+        get() = SimpleDateFormat("yyyy_MM_dd_HH_mm", Locale.getDefault())
 
     /** Normalize an epoch-millis timestamp to start-of-day in the device default zone. */
     fun startOfDay(timestamp: Long): Long {
@@ -86,6 +89,13 @@ object DateUtils {
      * that predates audit tracking and should be shown as "—" in the UI, not as an epoch date.
      */
     fun formatAuditTimestamp(ts: Long): String = auditTimeFmt.format(Date(ts))
+
+    /**
+     * Produces a filename-safe timestamp string, e.g. "2025_06_15_14_30".
+     * Used to generate backup filenames like "kulhad_backup_2025_06_15_14_30.kulhad".
+     */
+    fun formatForFilename(ts: Long = System.currentTimeMillis()): String =
+        filenameFmt.format(Date(ts))
 
     fun greeting(now: Long = System.currentTimeMillis()): String {
         val cal = Calendar.getInstance().apply { timeInMillis = now }

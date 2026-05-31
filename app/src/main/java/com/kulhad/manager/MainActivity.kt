@@ -38,6 +38,7 @@ import com.kulhad.manager.ui.screens.sales.PaymentEntryScreen
 import com.kulhad.manager.ui.screens.sales.PendingPaymentsScreen
 import com.kulhad.manager.ui.screens.sales.SalesScreen
 import com.kulhad.manager.ui.screens.masters.MastersScreen
+import com.kulhad.manager.ui.screens.settings.SettingsScreen
 import com.kulhad.manager.ui.screens.masters.ProductMasterScreen
 import com.kulhad.manager.ui.screens.stock.StockAdjustmentHistoryScreen
 import com.kulhad.manager.ui.screens.stock.StockAdjustmentScreen
@@ -106,13 +107,14 @@ class MainActivity : ComponentActivity() {
                             // ── Dashboard ────────────────────────────────────────────────────────
                             composable(Routes.DASHBOARD) {
                                 DashboardScreen(
-                                    onAttendance  = { navController.navigate(Routes.ATTENDANCE) },
+                                    onAttendance    = { navController.navigate(Routes.ATTENDANCE) },
                                     onAddProduction = { navController.navigate(Routes.ADD_PRODUCTION) },
-                                    onCreateSale  = { navController.navigate(Routes.CREATE_SALE) },
-                                    onAddExpense  = { navController.navigate(Routes.EXPENSE) },
-                                    onOpenReports = { navController.navigate(Routes.REPORTS) },
-                                    onOpenStock   = { navController.navigate(Routes.STOCK) },
-                                    onOpenMasters = { navController.navigate(Routes.MASTERS) }
+                                    onCreateSale    = { navController.navigate(Routes.CREATE_SALE) },
+                                    onAddExpense    = { navController.navigate(Routes.EXPENSE) },
+                                    onOpenReports   = { navController.navigate(Routes.REPORTS) },
+                                    onOpenStock     = { navController.navigate(Routes.STOCK) },
+                                    onOpenMasters   = { navController.navigate(Routes.MASTERS) },
+                                    onOpenSettings  = { navController.navigate(Routes.SETTINGS) }
                                 )
                             }
 
@@ -318,6 +320,11 @@ class MainActivity : ComponentActivity() {
 
                             composable(Routes.PRODUCT_MASTER) {
                                 ProductMasterScreen(onBack = { navController.popBackStack() })
+                            }
+
+                            // ── Settings ──────────────────────────────────────────────────────────
+                            composable(Routes.SETTINGS) {
+                                SettingsScreen(onBack = { navController.popBackStack() })
                             }
                         }
                     }

@@ -51,6 +51,10 @@ object Routes {
     /** Product / Kulhad-size master CRUD screen. */
     const val PRODUCT_MASTER = "product_master"
 
+    // ── Settings ────────────────────────────────────────────────────────────────
+    /** Settings hub: Data Management (backup / restore). */
+    const val SETTINGS = "settings"
+
     fun addWorker(workerId: Long? = null): String =
         if (workerId == null) ADD_WORKER else "$ADD_WORKER?workerId=$workerId"
 
