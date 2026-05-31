@@ -196,7 +196,7 @@ fun DashboardScreen(
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ShortcutTile("Reports",  Icons.Outlined.Checklist,  Modifier.weight(1f), onOpenReports)
-                            ShortcutTile("Stock",    Icons.Outlined.Inventory2, Modifier.weight(1f), onOpenStock)
+                          //  ShortcutTile("Stock",    Icons.Outlined.Inventory2, Modifier.weight(1f), onOpenStock)
                             ShortcutTile("Masters",  Icons.Outlined.Tune,       Modifier.weight(1f), onOpenMasters)
                             ShortcutTile("Settings", Icons.Outlined.Settings,   Modifier.weight(1f), onOpenSettings)
                         }
