@@ -13,6 +13,7 @@ import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.data.util.StockThresholds
 import com.kulhad.manager.di.UserSessionManager
 import com.kulhad.manager.domain.model.AuditInfo
+import com.kulhad.manager.domain.model.Product
 import com.kulhad.manager.domain.model.StockItem
 import com.kulhad.manager.domain.model.StockMovement
 import javax.inject.Inject
@@ -33,20 +34,55 @@ class StockRepository @Inject constructor(
 ) {
 
     fun observeStockItems(): Flow<List<StockItem>> = combine(
-        productDao.observeActive(),
+        // ALL products — filtering happens below so that inactive products with remaining
+        // physical stock are still visible and counted in alerts.
+        productDao.observeAll(),
         stockLedgerDao.observeAllStock()
     ) { products, totals ->
         val byProduct = totals.associate { it.productId to it.qty }
-        products.map { p ->
-            StockItem(
-                product = p.toDomain(),
-                quantity = byProduct[p.id] ?: 0
-            )
-        }
+        products
+            .filter { p ->
+                // Always show active products — operator may still need to adjust them.
+                // Show inactive products only when physical stock remains (qty ≠ 0);
+                // those pieces exist in the factory and need to be depleted, sold, or
+                // written off.  Inactive products at exactly zero are hidden — they are
+                // fully retired and have no further operational relevance.
+                p.isActive || (byProduct[p.id] ?: 0) != 0
+            }
+            .map { p ->
+                StockItem(
+                    product  = p.toDomain(),
+                    quantity = byProduct[p.id] ?: 0
+                )
+            }
     }
 
     fun observeAlertCount(): Flow<Int> =
         observeStockItems().map { items -> items.count { StockThresholds.isAlert(it.quantity) } }
+
+    /**
+     * Products that are valid targets for a manual stock adjustment (LOSS or ADJUSTMENT).
+     *
+     * Rule — include a product when:
+     *  • it is **active** (normal operational product), OR
+     *  • it is **inactive but still has physical stock > 0** (operator needs to write off,
+     *    correct a count, or mark breakages before the product is fully retired).
+     *
+     * Inactive products at exactly zero stock are excluded — there is nothing to adjust
+     * and showing them would clutter the picker with fully-retired entries.
+     *
+     * This rule mirrors the filter in [observeStockItems] so the stock-screen list and the
+     * adjustment picker always agree on which products are "in play".
+     */
+    fun observeAdjustableProducts(): Flow<List<Product>> = combine(
+        productDao.observeAll(),
+        stockLedgerDao.observeAllStock()
+    ) { products, totals ->
+        val byProduct = totals.associate { it.productId to it.qty }
+        products
+            .filter { p -> p.isActive || (byProduct[p.id] ?: 0) != 0 }
+            .map    { p -> p.toDomain() }
+    }
 
     fun observeStockForProduct(productId: Long): Flow<Int> =
         stockLedgerDao.observeCurrentStock(productId)
@@ -124,20 +160,26 @@ class StockRepository @Inject constructor(
     /**
      * Stream the ledger for one product, decorated with worker/customer description text
      * so the screen can render rich rows.
+     *
+     * Uses ALL products (active + inactive) so the product label in the ledger title
+     * remains correct even after the product is deactivated.
      */
     fun observeLedgerForProduct(productId: Long): Flow<List<StockMovement>> = combine(
         stockLedgerDao.observeForProduct(productId),
-        productDao.observeActive(),
+        productDao.observeAll(),       // ALL products — history must survive deactivation
         workerDao.observeAll(),
         saleDao.observeAll(),
         userDao.observeAll()
     ) { entries, products, _, sales, users ->
-        val sizeById = products.associate { it.id to it.sizeMl }
+        val productById = products.associateBy { it.id }
         val saleByCloseTs = sales.associateBy { it.id }
         val userById = users.associate { it.id to it.name }
 
         entries.map { e ->
-            val size = sizeById[e.productId] ?: 0
+            val product = productById[e.productId]
+            val size    = product?.sizeMl ?: 0
+            val label   = if (product != null) product.displayLabel.ifBlank { "${product.sizeMl}ml" }
+                          else "${e.productId}"
             val type = runCatching { StockChangeType.valueOf(e.changeType) }
                 .getOrDefault(StockChangeType.ADJUSTMENT)
             val description = when (type) {
@@ -150,6 +192,7 @@ class StockRepository @Inject constructor(
                 id             = e.id,
                 productId      = e.productId,
                 productSize    = size,
+                productLabel   = label,
                 quantityChange = e.quantityChange,
                 type           = type,
                 remark         = e.remark,
@@ -182,16 +225,23 @@ class StockRepository @Inject constructor(
         val end   = DateUtils.endOfDay(start)
         return combine(
             stockLedgerDao.observeAdjustmentsInRange(start, end),
-            productDao.observeActive()
+            // ALL products — history rows for deactivated products must still show
+            // the correct label (not "0ml") in the Adjustment History screen.
+            productDao.observeAll()
         ) { entries, products ->
-            val sizeById = products.associate { it.id to it.sizeMl }
+            val productById = products.associateBy { it.id }
             entries.map { e ->
+                val product = productById[e.productId]
+                val size    = product?.sizeMl ?: 0
+                val label   = product?.displayLabel?.ifBlank { "${product.sizeMl}ml" }
+                                  ?: "${e.productId}"
                 val type = runCatching { StockChangeType.valueOf(e.changeType) }
                     .getOrDefault(StockChangeType.ADJUSTMENT)
                 StockMovement(
                     id             = e.id,
                     productId      = e.productId,
-                    productSize    = sizeById[e.productId] ?: 0,
+                    productSize    = size,
+                    productLabel   = label,
                     quantityChange = e.quantityChange,
                     type           = type,
                     remark         = e.remark,

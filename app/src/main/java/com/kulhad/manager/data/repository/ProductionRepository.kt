@@ -18,6 +18,7 @@ import com.kulhad.manager.data.util.AuditUtils
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.di.UserSessionManager
 import com.kulhad.manager.domain.model.AuditInfo
+import com.kulhad.manager.domain.model.PieceRate
 import com.kulhad.manager.domain.model.Product
 import com.kulhad.manager.domain.model.ProductWithRate
 import com.kulhad.manager.domain.model.ProductionEntry
@@ -42,6 +43,19 @@ class ProductionRepository @Inject constructor(
     fun observeProducts(): Flow<List<Product>> =
         productDao.observeActive().map { list -> list.map { it.toDomain() } }
 
+    /**
+     * All products (active **and** inactive), ordered by display_order ASC, size_ml ASC.
+     *
+     * Used by historical / reporting screens (Production History, Stock Ledger, Adjustment
+     * History) that need to resolve product names for entries whose product has since been
+     * deactivated. Using [observeProducts] (active-only) in those contexts causes deactivated
+     * products to resolve as "0ml" / blank — this method prevents that.
+     *
+     * Callers that show a product **picker** should still use [observeProducts] / [observeActive].
+     */
+    fun observeAllProducts(): Flow<List<Product>> =
+        productDao.observeAll().map { list -> list.map { it.toDomain() } }
+
     fun observeProductsWithRates(): Flow<List<ProductWithRate>> =
         productDao.observeActive().map { products ->
             products.map { p ->
@@ -60,12 +74,73 @@ class ProductionRepository @Inject constructor(
     fun observeCurrentRate(productId: Long): Flow<Double> =
         pieceRateDao.observeCurrentRate(productId).map { it?.ratePerPiece ?: 0.0 }
 
+    /**
+     * Insert a new piece-rate row for [productId].
+     *
+     * Used by [setRate] (legacy call site) and [addRate] (Rate History screen).
+     * Both stamp full audit fields — existing rows from before v5 will show "—" in
+     * [AuditInfoCard] for the createdAt timestamp (migrated-row sentinel 0L).
+     */
     suspend fun setRate(productId: Long, rate: Double, effectiveFrom: Long) {
+        val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
         pieceRateDao.insert(
             PieceRateEntity(
-                productId = productId,
-                ratePerPiece = rate,
-                effectiveFrom = effectiveFrom
+                productId      = productId,
+                ratePerPiece   = rate,
+                effectiveFrom  = effectiveFrom,
+                auditCreatedBy = audit.createdBy,
+                auditCreatedAt = audit.createdAt
+            )
+        )
+    }
+
+    // ── Rate History ──────────────────────────────────────────────────────────
+
+    /**
+     * Observe the complete rate history for [productId], newest-first.
+     * Used by [ProductRateHistoryViewModel] to power the history list.
+     */
+    fun observeRateHistory(productId: Long): Flow<List<PieceRate>> =
+        pieceRateDao.observeHistory(productId).map { list -> list.map { it.toDomain() } }
+
+    /**
+     * Insert a brand-new piece-rate row with the current wall-clock time as [effectiveFrom].
+     * The new row automatically becomes the "current" rate (highest effective_from wins).
+     */
+    suspend fun addRate(productId: Long, ratePerPiece: Double) {
+        val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
+        pieceRateDao.insert(
+            PieceRateEntity(
+                productId      = productId,
+                ratePerPiece   = ratePerPiece,
+                effectiveFrom  = System.currentTimeMillis(),
+                auditCreatedBy = audit.createdBy,
+                auditCreatedAt = audit.createdAt
+            )
+        )
+    }
+
+    /**
+     * Update an existing rate row in-place.
+     *
+     * This preserves the original [effectiveFrom] and creation audit fields.
+     * Only [ratePerPiece], [auditUpdatedBy], and [auditUpdatedAt] are changed.
+     *
+     * Does NOT affect any [production_entries.rate_snapshot] values — existing
+     * production entries always keep the rate that was current when they were created.
+     */
+    suspend fun updateRate(rateId: Long, newRatePerPiece: Double) {
+        val existing = pieceRateDao.findById(rateId) ?: return
+        val audit = AuditUtils.updateAudit(
+            oldCreatedBy = existing.auditCreatedBy,
+            oldCreatedAt = existing.auditCreatedAt,
+            currentUser  = userSessionManager.currentUser.value
+        )
+        pieceRateDao.update(
+            existing.copy(
+                ratePerPiece   = newRatePerPiece,
+                auditUpdatedBy = audit.updatedBy,
+                auditUpdatedAt = audit.updatedAt
             )
         )
     }
@@ -168,24 +243,31 @@ class ProductionRepository @Inject constructor(
     ): Flow<List<ProductionEntry>> = combine(
         source,
         workerDao.observeAll(),
-        productDao.observeActive()
+        // Use ALL products (active + inactive) so that historical entries whose product has
+        // been deactivated still resolve to the correct size/label instead of falling back
+        // to the default value of 0 (which was showing as "0ml" in Production History).
+        productDao.observeAll()
     ) { entries, workers, products ->
-        val workerById = workers.associate { it.id to it.name }
-        val productById = products.associate { it.id to it.sizeMl }
+        val workerById  = workers.associate { it.id to it.name }
+        val productById = products.associateBy { it.id }
         entries.map { e ->
+            val product = productById[e.productId]
             ProductionEntry(
-                id               = e.id,
-                workerId         = e.workerId,
-                workerName       = workerById[e.workerId] ?: "Unknown",
-                productId        = e.productId,
-                productSize      = productById[e.productId] ?: 0,
-                quantityProduced = e.quantityProduced,
+                id                = e.id,
+                workerId          = e.workerId,
+                workerName        = workerById[e.workerId] ?: "Unknown",
+                productId         = e.productId,
+                productSize       = product?.sizeMl ?: 0,
+                productLabel      = if (product != null)
+                                        product.displayLabel.ifBlank { "${product.sizeMl}ml" }
+                                    else "${e.productId}",
+                quantityProduced  = e.quantityProduced,
                 defectiveQuantity = e.defectiveQuantity,
-                rateSnapshot     = e.rateSnapshot,
-                date             = e.date,
-                createdBy        = e.createdBy,
-                createdAt        = e.createdAt,
-                audit            = AuditInfo(
+                rateSnapshot      = e.rateSnapshot,
+                date              = e.date,
+                createdBy         = e.createdBy,
+                createdAt         = e.createdAt,
+                audit             = AuditInfo(
                     createdBy = e.auditCreatedBy,
                     createdAt = e.auditCreatedAt,
                     updatedBy = e.auditUpdatedBy,
@@ -225,6 +307,19 @@ class ProductionRepository @Inject constructor(
     suspend fun netQtyForWorkerInRange(workerId: Long, from: Long, to: Long): Int =
         productionDao.netQtyForWorkerInRange(workerId, from, to)
 }
+
+internal fun PieceRateEntity.toDomain(): PieceRate = PieceRate(
+    id            = id,
+    productId     = productId,
+    ratePerPiece  = ratePerPiece,
+    effectiveFrom = effectiveFrom,
+    audit         = AuditInfo(
+        createdBy = auditCreatedBy,
+        createdAt = auditCreatedAt,
+        updatedBy = auditUpdatedBy,
+        updatedAt = auditUpdatedAt
+    )
+)
 
 internal fun ProductEntity.toDomain(): Product = Product(
     id           = id,

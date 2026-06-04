@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.kulhad.manager.data.local.entity.PieceRateEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +13,14 @@ interface PieceRateDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(rate: PieceRateEntity): Long
+
+    /** Full-row update — used by the rate edit flow to stamp audit_updated_by/at. */
+    @Update
+    suspend fun update(rate: PieceRateEntity)
+
+    /** One-shot read of a single rate row by primary key. */
+    @Query("SELECT * FROM piece_rates WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): PieceRateEntity?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(rates: List<PieceRateEntity>)

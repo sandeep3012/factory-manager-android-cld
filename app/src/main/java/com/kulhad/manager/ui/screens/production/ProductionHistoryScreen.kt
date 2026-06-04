@@ -151,8 +151,9 @@ fun ProductionHistoryScreen(
                                         fontSize   = 14.sp,
                                         fontWeight = FontWeight.W500
                                     )
+                                    // Product label + rate-at-entry on one subtitle line
                                     Text(
-                                        text  = "${e.productSize}ml",
+                                        text  = "${e.productLabel}  ·  ${Money.formatRupeesDouble(e.rateSnapshot)}/pc",
                                         color = TextSecondary,
                                         fontSize = 12.sp
                                     )
@@ -215,7 +216,7 @@ private fun ProductionDetailDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-                // ── Product size (hero value) ──────────────────────────────
+                // ── Product label (hero value) ────────────────────────────
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text          = "PRODUCT",
@@ -225,7 +226,7 @@ private fun ProductionDetailDialog(
                         letterSpacing = 0.8.sp
                     )
                     Text(
-                        text       = "${entry.productSize}ml",
+                        text       = entry.productLabel,
                         color      = PurpleAccent,
                         fontSize   = 22.sp,
                         fontWeight = FontWeight.W600
@@ -239,6 +240,25 @@ private fun ProductionDetailDialog(
                         text       = entry.workerName,
                         color      = TextPrimary,
                         fontSize   = 13.sp,
+                        fontWeight = FontWeight.W500
+                    )
+                }
+
+                // ── Rate at time of entry ─────────────────────────────────
+                // Sourced from production_entries.rate_snapshot — immutable, stamped
+                // when the entry was saved. Remains correct even after future rate changes.
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text          = "RATE AT ENTRY",
+                        color         = TextSecondary,
+                        fontSize      = 10.sp,
+                        fontWeight    = FontWeight.W600,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text       = "${Money.formatRupeesDouble(entry.rateSnapshot)} / piece",
+                        color      = PurpleAccent,
+                        fontSize   = 15.sp,
                         fontWeight = FontWeight.W500
                     )
                 }
@@ -289,9 +309,9 @@ private fun ProductionDetailDialog(
                     }
                 }
 
-                // ── Earnings ──────────────────────────────────────────────
+                // ── Labour cost = net qty × rate-at-entry ─────────────────
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Earnings:", color = TextSecondary, fontSize = 13.sp)
+                    Text("Labour Cost:", color = TextSecondary, fontSize = 13.sp)
                     Text(
                         text       = Money.formatRupeesDouble(entry.earnings),
                         color      = Success,

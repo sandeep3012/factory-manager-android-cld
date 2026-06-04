@@ -54,8 +54,9 @@ fun StockLedgerScreen(
     val ledger by viewModel.observeLedger(productId).collectAsStateWithLifecycle(emptyList())
     val current by viewModel.observeStockFor(productId).collectAsStateWithLifecycle(0)
     val balance by viewModel.runningBalance.collectAsStateWithLifecycle()
-    val products by viewModel.products.collectAsStateWithLifecycle()
-    val product = products.firstOrNull { it.id == productId }
+    // Use allProducts (active + inactive) so the title remains correct after deactivation.
+    val allProducts by viewModel.allProducts.collectAsStateWithLifecycle()
+    val product = allProducts.firstOrNull { it.id == productId }
 
     LaunchedEffect(productId, ledger.size) {
         viewModel.loadRunningBalance(productId)
@@ -66,7 +67,7 @@ fun StockLedgerScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
-            title = "Ledger — ${product?.sizeMl ?: ""}ml",
+            title = "Ledger — ${product?.displayLabel?.ifBlank { "${product.sizeMl}ml" } ?: "—"}",
             subtitle = "Current stock: $current pcs",
             onBack = onBack
         )

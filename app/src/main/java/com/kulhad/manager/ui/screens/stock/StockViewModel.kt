@@ -44,7 +44,31 @@ class StockViewModel @Inject constructor(
     val stockItems: StateFlow<List<StockItem>> = stockRepository.observeStockItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /**
+     * Active products only — kept for any future picker that must show active products
+     * exclusively.  [StockAdjustmentScreen] now uses [adjustableProducts] instead.
+     */
     val products: StateFlow<List<Product>> = productionRepository.observeProducts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Products eligible for a manual stock adjustment.
+     *
+     * Includes active products AND inactive products that still have physical stock > 0.
+     * Inactive products at zero are excluded — nothing to adjust.
+     *
+     * Backed by [StockRepository.observeAdjustableProducts] so the business rule lives in
+     * the repository, not the UI.
+     */
+    val adjustableProducts: StateFlow<List<Product>> = stockRepository.observeAdjustableProducts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * ALL products (active + inactive) — used by [StockLedgerScreen] to resolve the product
+     * name in the title bar. A product deactivated after its ledger rows were created must
+     * still resolve to its name rather than producing a blank title ("Ledger — ml").
+     */
+    val allProducts: StateFlow<List<Product>> = productionRepository.observeAllProducts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun observeLedger(productId: Long) = stockRepository.observeLedgerForProduct(productId)

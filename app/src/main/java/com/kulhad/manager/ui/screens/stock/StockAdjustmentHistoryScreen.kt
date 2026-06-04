@@ -168,7 +168,7 @@ fun StockAdjustmentHistoryScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text       = "${entry.productSize}ml",
+                                        text       = entry.productLabel,
                                         color      = TextPrimary,
                                         fontSize   = 14.sp,
                                         fontWeight = FontWeight.W500
@@ -284,7 +284,7 @@ private fun AdjustmentEditDialog(
                         letterSpacing = 0.8.sp
                     )
                     Text(
-                        text       = "${adjustment.productSize}ml",
+                        text       = adjustment.productLabel,
                         color      = TextPrimary,
                         fontSize   = 20.sp,
                         fontWeight = FontWeight.W600

@@ -179,7 +179,10 @@ class SaleRepository @Inject constructor(
             saleDao.observeById(saleId),
             saleItemDao.observeForSale(saleId),
             paymentDao.observeForSale(saleId),
-            productDao.observeActive()
+            // ALL products — a sale detail is historical data; product may have been
+            // deactivated after the sale was created. observeActive() would return null
+            // for such products, corrupting productSize to 0 in SaleItem.
+            productDao.observeAll()
         ) { sale, items, payments, products ->
             if (sale == null) return@combine null
             val sizeById = products.associate { it.id to it.sizeMl }

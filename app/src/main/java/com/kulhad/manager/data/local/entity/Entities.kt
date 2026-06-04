@@ -120,7 +120,12 @@ data class PieceRateEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "product_id") val productId: Long,
     @ColumnInfo(name = "rate_per_piece") val ratePerPiece: Double,
-    @ColumnInfo(name = "effective_from") val effectiveFrom: Long
+    @ColumnInfo(name = "effective_from") val effectiveFrom: Long,
+    // ── Audit columns (added in MIGRATION_4_5) ────────────────────────────────
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
 )
 
 // =====================================================================================
