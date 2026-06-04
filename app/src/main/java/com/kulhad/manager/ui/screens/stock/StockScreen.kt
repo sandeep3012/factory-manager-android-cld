@@ -34,9 +34,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.util.StockThresholds
 import com.kulhad.manager.ui.charts.MultiSegmentDonut
 import com.kulhad.manager.ui.charts.ProgressBar
+import com.kulhad.manager.ui.components.BadgeType
 import com.kulhad.manager.ui.components.KpiStrip
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
+import com.kulhad.manager.ui.components.StatusBadge
 import com.kulhad.manager.ui.preview.UiDemoData
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
@@ -61,17 +63,25 @@ fun StockScreen(
     // Demo overlay when all stock is zero
     val useDemo = UiDemoData.SHOW_DEMO && items.all { it.quantity == 0 }
 
-    data class StockRow(val id: Long, val label: String, val qty: Int, val maxQty: Int)
+    data class StockRow(
+        val id: Long,
+        val label: String,
+        val qty: Int,
+        val maxQty: Int,
+        /** False when the product has been deactivated but still has remaining stock. */
+        val isActive: Boolean
+    )
 
     val displayItems: List<StockRow> = if (useDemo) {
         val max = UiDemoData.stockItems.maxOf { it.qty }.coerceAtLeast(1)
         UiDemoData.stockItems.mapIndexed { i, d ->
-            StockRow(i.toLong(), "${d.sizeMl}ml", d.qty, max)
+            StockRow(i.toLong(), "${d.sizeMl}ml", d.qty, max, isActive = true)
         }
     } else {
         val max = items.maxOfOrNull { it.quantity }?.coerceAtLeast(1) ?: 1
-        // Use displayLabel — respects custom labels set in Product Master (e.g. "Half Litre")
-        items.map { StockRow(it.product.id, it.product.displayLabel, it.quantity, max) }
+        // Use displayLabel — respects custom labels set in Product Master (e.g. "Half Litre").
+        // isActive is passed through so the UI can visually distinguish inactive rows.
+        items.map { StockRow(it.product.id, it.product.displayLabel, it.quantity, max, it.product.isActive) }
     }
 
     val totalQty   = displayItems.sumOf { it.qty }
@@ -165,12 +175,31 @@ fun StockScreen(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = row.label, color = TextPrimary,
-                            fontSize = 14.sp, fontWeight = FontWeight.W500)
-                        Text(text = "${row.qty} pcs — ${(frac * 100).toInt()}%",
-                            color = TextSecondary, fontSize = 14.sp)
+                        // Label — dimmed for inactive products; badge marks the status
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text       = row.label,
+                                color      = if (row.isActive) TextPrimary else TextSecondary,
+                                fontSize   = 14.sp,
+                                fontWeight = if (row.isActive) FontWeight.W500 else FontWeight.W400
+                            )
+                            if (!row.isActive) {
+                                // Physical stock remains but new production/entry is blocked.
+                                // Amber badge (warning) signals "needs attention, not broken".
+                                StatusBadge("Inactive", BadgeType.WARNING)
+                            }
+                        }
+                        Text(
+                            text  = "${row.qty} pcs — ${(frac * 100).toInt()}%",
+                            color = TextSecondary,
+                            fontSize = 14.sp
+                        )
                     }
                     ProgressBar(progress = frac, color = color, height = 6.dp)
                 }

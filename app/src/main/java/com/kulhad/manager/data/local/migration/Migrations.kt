@@ -189,8 +189,30 @@ object Migrations {
     }
 
     /**
+     * v4 → v5: Add audit columns to the `piece_rates` table.
+     *
+     * `piece_rates` was the only business table still missing audit tracking after v4.
+     * This migration brings it in line with every other audited table.
+     *
+     * Existing rows receive 'System'/0/NULL/NULL — the same "migrated" sentinel values
+     * used by every prior audit migration. [AuditInfoCard] renders createdAt == 0L
+     * as "—" to indicate a row that predates audit tracking.
+     *
+     * After this migration the Rate History screen can show full audit trails for all
+     * future rate changes while gracefully presenting "—" for pre-upgrade rows.
+     */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `piece_rates` ADD COLUMN `audit_created_by` TEXT NOT NULL DEFAULT 'System'")
+            db.execSQL("ALTER TABLE `piece_rates` ADD COLUMN `audit_created_at` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `piece_rates` ADD COLUMN `audit_updated_by` TEXT DEFAULT NULL")
+            db.execSQL("ALTER TABLE `piece_rates` ADD COLUMN `audit_updated_at` INTEGER DEFAULT NULL")
+        }
+    }
+
+    /**
      * All migrations in ascending version order.
      * Room applies them sequentially — add new ones at the end of the array.
      */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }

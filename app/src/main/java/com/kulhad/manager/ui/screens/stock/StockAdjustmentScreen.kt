@@ -41,7 +41,10 @@ fun StockAdjustmentScreen(
     onBack: () -> Unit,
     viewModel: StockViewModel = hiltViewModel()
 ) {
-    val products by viewModel.products.collectAsStateWithLifecycle()
+    // adjustableProducts = active products + inactive products that still have stock > 0.
+    // Using this instead of `products` (active-only) lets operators write off or correct
+    // inventory for deactivated products that haven't been fully depleted yet.
+    val products by viewModel.adjustableProducts.collectAsStateWithLifecycle()
     val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
     var typeStr by remember { mutableStateOf("Loss") }
     var sizeMl by remember { mutableStateOf<Int?>(null) }

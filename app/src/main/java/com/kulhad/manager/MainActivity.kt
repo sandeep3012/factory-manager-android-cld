@@ -38,8 +38,9 @@ import com.kulhad.manager.ui.screens.sales.PaymentEntryScreen
 import com.kulhad.manager.ui.screens.sales.PendingPaymentsScreen
 import com.kulhad.manager.ui.screens.sales.SalesScreen
 import com.kulhad.manager.ui.screens.masters.MastersScreen
-import com.kulhad.manager.ui.screens.settings.SettingsScreen
 import com.kulhad.manager.ui.screens.masters.ProductMasterScreen
+import com.kulhad.manager.ui.screens.masters.ProductRateHistoryScreen
+import com.kulhad.manager.ui.screens.settings.SettingsScreen
 import com.kulhad.manager.ui.screens.stock.StockAdjustmentHistoryScreen
 import com.kulhad.manager.ui.screens.stock.StockAdjustmentScreen
 import com.kulhad.manager.ui.screens.stock.StockLedgerScreen
@@ -319,7 +320,24 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable(Routes.PRODUCT_MASTER) {
-                                ProductMasterScreen(onBack = { navController.popBackStack() })
+                                ProductMasterScreen(
+                                    onBack        = { navController.popBackStack() },
+                                    onManageRates = { productId ->
+                                        navController.navigate(Routes.productRateHistory(productId))
+                                    }
+                                )
+                            }
+
+                            composable(
+                                route     = "${Routes.PRODUCT_RATE_HISTORY}/{productId}",
+                                arguments = listOf(
+                                    navArgument("productId") { type = NavType.LongType }
+                                )
+                            ) {
+                                ProductRateHistoryScreen(
+                                    productId = it.arguments!!.getLong("productId"),
+                                    onBack    = { navController.popBackStack() }
+                                )
                             }
 
                             // ── Settings ──────────────────────────────────────────────────────────

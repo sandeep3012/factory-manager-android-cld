@@ -44,6 +44,10 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): ProductEntity?
 
+    /** Reactive read of a single product — used by ProductRateHistoryScreen header. */
+    @Query("SELECT * FROM products WHERE id = :id LIMIT 1")
+    fun observeById(id: Long): Flow<ProductEntity?>
+
     /** Check for duplicate display_label (case-insensitive), excluding [excludeId] for edit flows. */
     @Query("SELECT COUNT(*) FROM products WHERE LOWER(display_label) = LOWER(:label) AND id != :excludeId")
     suspend fun countByLabel(label: String, excludeId: Long = 0): Int

@@ -20,7 +20,13 @@ data class StockItem(
 data class StockMovement(
     val id: Long,
     val productId: Long,
+    /** Raw ml value — used for numeric comparisons. */
     val productSize: Int,
+    /**
+     * Human-readable product label (e.g. "80ml", "Half Litre") resolved from ALL products
+     * so adjustment-history rows for deactivated products still show the correct label.
+     */
+    val productLabel: String,
     val quantityChange: Int,
     val type: StockChangeType,
     val remark: String,

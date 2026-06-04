@@ -55,6 +55,10 @@ object Routes {
     /** Settings hub: Data Management (backup / restore). */
     const val SETTINGS = "settings"
 
+    // ── Rate History ─────────────────────────────────────────────────────────────
+    /** Full rate history + add/edit rate screen for a single product. */
+    const val PRODUCT_RATE_HISTORY = "product_rate_history" // /{productId}
+
     fun addWorker(workerId: Long? = null): String =
         if (workerId == null) ADD_WORKER else "$ADD_WORKER?workerId=$workerId"
 
@@ -64,6 +68,7 @@ object Routes {
 
     fun paymentEntry(saleId: Long): String = "$PAYMENT_ENTRY/$saleId"
     fun stockLedger(productId: Long): String = "$STOCK_LEDGER/$productId"
+    fun productRateHistory(productId: Long): String = "$PRODUCT_RATE_HISTORY/$productId"
 }
 
 data class BottomTab(

@@ -56,7 +56,7 @@ import com.kulhad.manager.data.util.PasswordHasher
         ExpenseEntity::class,
         WorkerAdvanceEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true  // writes app/schemas/…/<version>.json — commit to git
 )
 @TypeConverters(Converters::class)
@@ -108,7 +108,7 @@ abstract class KulhadDatabase : RoomDatabase() {
     /**
      * Seeds initial data on first creation:
      *   - 8 products (60..250ml)
-     *   - 8 piece_rates @ ₹1.20 each
+     *   - 8 piece_rates @ ₹0.30 each
      *   - 3 expense types (Labor, Soil, Transport)
      *   - 1 demo user (owner@kulhad.com / kulhad123)
      */
@@ -133,14 +133,14 @@ abstract class KulhadDatabase : RoomDatabase() {
                 )
             }
 
-            // Piece rates (1 per product, default ₹1.20)
+            // Piece rates (1 per product, default ₹0.30)
             // Product IDs are auto-incremented 1..8 in insertion order.
             for (productId in 1..sizes.size) {
                 db.insert(
                     "piece_rates", android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE,
                     ContentValues().apply {
                         put("product_id", productId.toLong())
-                        put("rate_per_piece", 1.20)
+                        put("rate_per_piece", 0.30)
                         put("effective_from", now)
                     }
                 )

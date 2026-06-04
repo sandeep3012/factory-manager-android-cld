@@ -16,7 +16,19 @@ data class ProductionEntry(
     val workerId: Long,
     val workerName: String,
     val productId: Long,
+    /** Raw ml value from the products table — used for numeric comparisons and sorting. */
     val productSize: Int,
+    /**
+     * Human-readable product label (e.g. "80ml", "Half Litre") resolved from
+     * [com.kulhad.manager.data.local.entity.ProductEntity.displayLabel] at repository time.
+     *
+     * Populated from ALL products (active + inactive) so that historical entries for
+     * deactivated products still display the correct label instead of falling back to "0ml".
+     *
+     * Falls back to "${productSize}ml" when the product is not found in the table (which
+     * should never happen in practice since product rows are never deleted).
+     */
+    val productLabel: String,
     val quantityProduced: Int,
     val defectiveQuantity: Int,
     val rateSnapshot: Double,

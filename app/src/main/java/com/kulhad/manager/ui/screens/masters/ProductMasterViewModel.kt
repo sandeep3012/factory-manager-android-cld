@@ -119,12 +119,14 @@ class ProductMasterViewModel @Inject constructor(
                     auditCreatedAt = audit.createdAt
                 )
             )
-            // Step B: insert initial piece rate
+            // Step B: insert initial piece rate (with audit fields since v5 schema)
             pieceRateDao.insert(
                 PieceRateEntity(
-                    productId     = productId,
-                    ratePerPiece  = ratePerPiece,
-                    effectiveFrom = System.currentTimeMillis()
+                    productId      = productId,
+                    ratePerPiece   = ratePerPiece,
+                    effectiveFrom  = System.currentTimeMillis(),
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
                 )
             )
             onResult(ProductSaveResult.Success)
@@ -189,11 +191,14 @@ class ProductMasterViewModel @Inject constructor(
             // Conditionally insert a new rate row only if the rate actually changed
             val currentRate = pieceRateDao.currentRate(id)?.ratePerPiece ?: 0.0
             if (newRatePerPiece != currentRate) {
+                val rateAudit = AuditUtils.createAudit(userSessionManager.currentUser.value)
                 pieceRateDao.insert(
                     PieceRateEntity(
-                        productId     = id,
-                        ratePerPiece  = newRatePerPiece,
-                        effectiveFrom = System.currentTimeMillis()
+                        productId      = id,
+                        ratePerPiece   = newRatePerPiece,
+                        effectiveFrom  = System.currentTimeMillis(),
+                        auditCreatedBy = rateAudit.createdBy,
+                        auditCreatedAt = rateAudit.createdAt
                     )
                 )
             }

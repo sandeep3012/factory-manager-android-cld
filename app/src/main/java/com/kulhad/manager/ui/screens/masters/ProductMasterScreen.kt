@@ -73,6 +73,7 @@ import com.kulhad.manager.ui.theme.WarningAmber
 @Composable
 fun ProductMasterScreen(
     onBack: () -> Unit,
+    onManageRates: (productId: Long) -> Unit = {},
     viewModel: ProductMasterViewModel = hiltViewModel()
 ) {
     val products  by viewModel.allProductsWithRates.collectAsStateWithLifecycle()
@@ -114,6 +115,10 @@ fun ProductMasterScreen(
                         is ProductSaveResult.DuplicateLabel     -> snackMessage = "\"${result.label}\" already exists."
                     }
                 }
+            },
+            onManageRates = { productId ->
+                editTarget = null           // dismiss dialog before navigating
+                onManageRates(productId)
             },
             errorMessage = snackMessage.also { snackMessage = null }
         )
@@ -321,6 +326,7 @@ private fun ProductEditDialog(
     productWithRate: ProductWithRate,
     onDismiss: () -> Unit,
     onSave: (name: String, label: String, order: Int, isActive: Boolean, rate: Double) -> Unit,
+    onManageRates: (productId: Long) -> Unit,
     errorMessage: String?
 ) {
     val product = productWithRate.product
@@ -384,6 +390,35 @@ private fun ProductEditDialog(
                     keyboardType  = KeyboardType.Decimal,
                     helper        = "Changing rate adds a new history row; past entries unaffected"
                 )
+
+                // ── Rate history link ─────────────────────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text     = "Current Rate",
+                            color    = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text       = Money.formatRupeesDouble(productWithRate.ratePerPiece) + "/pc",
+                            color      = TextPrimary,
+                            fontSize   = 14.sp,
+                            fontWeight = FontWeight.W500
+                        )
+                    }
+                    TextButton(onClick = { onManageRates(product.id) }) {
+                        Text(
+                            text       = "Rate History →",
+                            color      = PrimaryBlue,
+                            fontSize   = 13.sp,
+                            fontWeight = FontWeight.W500
+                        )
+                    }
+                }
 
                 // ── Active toggle ─────────────────────────────────────────────
                 Row(
