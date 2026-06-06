@@ -2,16 +2,35 @@ package com.kulhad.manager.domain.model
 
 import com.kulhad.manager.data.local.entity.WorkerType
 
+/**
+ * One month's P&L summary used in the 6-month multi-series trend chart.
+ */
+data class MonthSummary(
+    val label: String,
+    val revenue: Int,
+    val labourCost: Int,
+    val expenses: Int,
+    val netProfit: Int
+)
+
 data class ProfitLossReport(
     val periodLabel: String,
     val totalSales: Int,
     val laborCost: Int,
+    /** Revenue minus labour cost only (expenses not yet deducted). */
+    val grossProfit: Int,
     val expenseByType: List<Pair<String, Int>>, // typeName -> amount
     val totalExpenses: Int,
     val netProfit: Int,
+    // ── Previous month (for comparison card) ──────────────────────────────
+    val previousRevenue: Int,
+    val previousLaborCost: Int,
+    val previousExpenses: Int,
     val previousProfit: Int,
     val percentChange: Double,
-    val monthlyTrend: List<Pair<String, Int>> // last 4 months: label -> profit
+    // ── 6-month multi-series trend ─────────────────────────────────────────
+    /** Last 6 months in chronological order (oldest first). */
+    val trendFull: List<MonthSummary>
 )
 
 data class WorkerSalaryRow(
