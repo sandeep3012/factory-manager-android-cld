@@ -191,7 +191,10 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable(Routes.ATTENDANCE_HISTORY) {
-                                AttendanceHistoryScreen(onBack = { navController.popBackStack() })
+                                AttendanceHistoryScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onWorkerHistory = { id -> navController.navigate(Routes.workerHistory(id)) }
+                                )
                             }
 
                             composable(

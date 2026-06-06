@@ -176,11 +176,34 @@ class WorkerViewModel @Inject constructor(
     val allWorkers: StateFlow<List<Worker>> = repository.observeAllWorkers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val attendancePresentToday: StateFlow<Int> = repository.observePresentCountToday()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    /**
+     * Present count for the currently selected working date.
+     *
+     * Re-queries whenever the working date changes via [WorkingDateManager].
+     * [flatMapLatest] cancels the previous DB subscription the moment a new date is selected.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val attendancePresentToday: StateFlow<Int> =
+        workingDateManager.currentWorkingDate
+            .flatMapLatest { date ->
+                val epochMilli = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                repository.observePresentCountForDate(epochMilli)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    val attendanceAbsentToday: StateFlow<Int> = repository.observeAbsentCountToday()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    /**
+     * Absent count for the currently selected working date.
+     *
+     * Same date-reactive pattern as [attendancePresentToday].
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val attendanceAbsentToday: StateFlow<Int> =
+        workingDateManager.currentWorkingDate
+            .flatMapLatest { date ->
+                val epochMilli = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                repository.observeAbsentCountForDate(epochMilli)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     val attendanceTrend: StateFlow<List<Pair<Long, Int>>> = repository.observeAttendanceTrend(7)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

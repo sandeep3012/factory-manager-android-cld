@@ -3,6 +3,7 @@ package com.kulhad.manager.data.repository
 import androidx.room.withTransaction
 import com.kulhad.manager.data.local.KulhadDatabase
 import com.kulhad.manager.data.local.dao.AttendanceDao
+import com.kulhad.manager.data.local.dao.WorkerMonthlyCount
 import com.kulhad.manager.data.local.dao.UserDao
 import com.kulhad.manager.data.local.dao.WorkerAdvanceDao
 import com.kulhad.manager.data.local.dao.WorkerDao
@@ -298,6 +299,14 @@ class WorkerRepository @Inject constructor(
     fun observeAbsentCountToday(): Flow<Int> =
         attendanceDao.observeAbsentCount(DateUtils.todayStart())
 
+    /** Reactive present count for any specific [date] (start-of-day normalised). */
+    fun observePresentCountForDate(date: Long): Flow<Int> =
+        attendanceDao.observePresentCount(DateUtils.startOfDay(date))
+
+    /** Reactive absent count for any specific [date] (start-of-day normalised). */
+    fun observeAbsentCountForDate(date: Long): Flow<Int> =
+        attendanceDao.observeAbsentCount(DateUtils.startOfDay(date))
+
     fun observeAttendanceTrend(days: Int = 7): Flow<List<Pair<Long, Int>>> {
         val starts = (days - 1 downTo 0).map { DateUtils.addDays(DateUtils.todayStart(), -it) }
         val from = starts.first()
@@ -450,6 +459,41 @@ class WorkerRepository @Inject constructor(
 
     fun observeRecentAdvancesForWorker(workerId: Long, limit: Int = 5): Flow<List<WorkerAdvanceRecord>> =
         advanceDao.observeRecentForWorker(workerId, limit).map { list -> list.map { it.toDomain() } }
+
+    // -------- Monthly Attendance Register --------
+
+    /**
+     * Reactive per-worker attendance summary for a calendar month range [from]..[to].
+     *
+     * Combines the full worker list (active + inactive) with grouped attendance counts
+     * from the DB. Workers who have no rows in the period get presentDays=0 / absentDays=0.
+     */
+    fun observeMonthlyAttendanceReport(from: Long, to: Long): Flow<List<WorkerMonthAttendance>> =
+        combine(
+            workerDao.observeAll().map { list -> list.map { it.toDomain() } },
+            attendanceDao.observeMonthlyWorkerCounts(from, to)
+        ) { workers, counts ->
+            val countMap: Map<Long, WorkerMonthlyCount> = counts.associateBy { it.workerId }
+            workers.map { worker ->
+                val c = countMap[worker.id]
+                WorkerMonthAttendance(
+                    worker      = worker,
+                    presentDays = c?.presentCount ?: 0,
+                    absentDays  = c?.absentCount  ?: 0
+                )
+            }
+        }
+}
+
+/** Monthly attendance summary for a single worker — used by AttendanceHistoryScreen register. */
+data class WorkerMonthAttendance(
+    val worker: Worker,
+    val presentDays: Int,
+    val absentDays: Int
+) {
+    /** Attendance rate as a 0–100 integer percentage based on present+absent total. */
+    val totalRecorded: Int get() = presentDays + absentDays
+    val rate: Int get() = if (totalRecorded == 0) 0 else (presentDays * 100) / totalRecorded
 }
 
 internal fun WorkerEntity.toDomain(): Worker = Worker(
