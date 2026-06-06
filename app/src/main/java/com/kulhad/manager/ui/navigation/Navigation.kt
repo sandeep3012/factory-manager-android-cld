@@ -21,6 +21,7 @@ object Routes {
     const val ADD_WORKER = "add_worker"          // ?workerId={workerId}
     const val WORKER_TYPE_HISTORY = "worker_type_history" // /{workerId}
     const val WORKER_HISTORY = "worker_history"           // /{workerId}
+    const val WORKERS_ARCHIVE = "workers_archive"
     const val ATTENDANCE = "attendance"
     const val ATTENDANCE_HISTORY = "attendance_history"
     const val ADVANCE_ENTRY = "advance_entry"    // ?workerId={workerId}

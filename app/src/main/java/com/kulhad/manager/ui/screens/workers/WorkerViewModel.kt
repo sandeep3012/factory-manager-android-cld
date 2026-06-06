@@ -78,19 +78,21 @@ class WorkerViewModel @Inject constructor(
     val filter: StateFlow<WorkerFilter> = _filter.asStateFlow()
 
     val listData: StateFlow<WorkerListData> = combine(
-        repository.observeWorkersWithTodayAttendance(),
+        // Active workers only — WorkerListScreen is an operational screen.
+        // Inactive workers are accessible via the Workers Archive screen.
+        repository.observeActiveWorkersWithTodayAttendance(),
         _filter
-    ) { all, filter ->
+    ) { active, filter ->
         val filtered = when (filter) {
-            WorkerFilter.ALL -> all
-            WorkerFilter.PIECE -> all.filter { it.worker.currentType == WorkerType.PIECE }
-            WorkerFilter.SALARY -> all.filter { it.worker.currentType == WorkerType.SALARY }
+            WorkerFilter.ALL    -> active
+            WorkerFilter.PIECE  -> active.filter { it.worker.currentType == WorkerType.PIECE }
+            WorkerFilter.SALARY -> active.filter { it.worker.currentType == WorkerType.SALARY }
         }
         WorkerListData(
-            workers = filtered,
-            totalCount = all.size,
-            presentCount = all.count { it.isPresentToday == true },
-            absentCount = all.count { it.isPresentToday == false }
+            workers      = filtered,
+            totalCount   = active.size,
+            presentCount = active.count { it.isPresentToday == true },
+            absentCount  = active.count { it.isPresentToday == false }
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorkerListData(emptyList(), 0, 0, 0))
 

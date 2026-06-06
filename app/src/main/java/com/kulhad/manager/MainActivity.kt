@@ -52,6 +52,7 @@ import com.kulhad.manager.ui.screens.workers.AttendanceScreen
 import com.kulhad.manager.ui.screens.workers.WorkerHistoryScreen
 import com.kulhad.manager.ui.screens.workers.WorkerListScreen
 import com.kulhad.manager.ui.screens.workers.WorkerTypeHistoryScreen
+import com.kulhad.manager.ui.screens.workers.WorkersArchiveScreen
 import com.kulhad.manager.ui.theme.KulhadTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -123,11 +124,11 @@ class MainActivity : ComponentActivity() {
                             // ── Workers ──────────────────────────────────────────────────────────
                             composable(Routes.WORKERS) {
                                 WorkerListScreen(
-                                    onAddWorker = { navController.navigate(Routes.addWorker()) },
-                                    onEditWorker = { id -> navController.navigate(Routes.addWorker(id)) },
+                                    onAddWorker     = { navController.navigate(Routes.addWorker()) },
+                                    onEditWorker    = { id -> navController.navigate(Routes.addWorker(id)) },
                                     onWorkerHistory = { id -> navController.navigate(Routes.workerHistory(id)) },
-                                    onAttendance = { navController.navigate(Routes.ATTENDANCE) },
-                                    onAdvanceEntry = { navController.navigate(Routes.ADVANCE_ENTRY) }
+                                    onArchive       = { navController.navigate(Routes.WORKERS_ARCHIVE) },
+                                    onAdvanceEntry  = { navController.navigate(Routes.ADVANCE_ENTRY) }
                                 )
                             }
 
@@ -171,6 +172,14 @@ class MainActivity : ComponentActivity() {
                                 WorkerHistoryScreen(
                                     workerId = workerId,
                                     onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(Routes.WORKERS_ARCHIVE) {
+                                WorkersArchiveScreen(
+                                    onBack          = { navController.popBackStack() },
+                                    onEditWorker    = { id -> navController.navigate(Routes.addWorker(id)) },
+                                    onWorkerHistory = { id -> navController.navigate(Routes.workerHistory(id)) }
                                 )
                             }
 

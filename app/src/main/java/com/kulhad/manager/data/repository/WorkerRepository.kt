@@ -76,6 +76,27 @@ class WorkerRepository @Inject constructor(
         }
     }
 
+    /**
+     * Same as [observeWorkersWithTodayAttendance] but restricted to **active** workers only.
+     * Used by [WorkerListScreen] which is an operational screen — inactive workers must not
+     * appear there, but are still accessible via the Workers Archive screen.
+     */
+    fun observeActiveWorkersWithTodayAttendance(): Flow<List<WorkerWithAttendance>> {
+        val today = DateUtils.todayStart()
+        return combine(
+            workerDao.observeActive(),
+            attendanceDao.observeByDate(today)
+        ) { workers, todays ->
+            val map = todays.associateBy { it.workerId }
+            workers.map { w ->
+                WorkerWithAttendance(
+                    worker = w.toDomain(),
+                    isPresentToday = map[w.id]?.isPresent
+                )
+            }
+        }
+    }
+
     suspend fun getWorker(id: Long): Worker? = workerDao.findById(id)?.toDomain()
 
     fun observeWorker(id: Long): Flow<Worker?> =

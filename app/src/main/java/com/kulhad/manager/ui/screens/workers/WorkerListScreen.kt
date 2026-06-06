@@ -57,7 +57,7 @@ fun WorkerListScreen(
     onAddWorker: () -> Unit,
     onEditWorker: (Long) -> Unit,
     onWorkerHistory: (Long) -> Unit,
-    onAttendance: () -> Unit,
+    onArchive: () -> Unit,
     onAdvanceEntry: () -> Unit,
     viewModel: WorkerViewModel = hiltViewModel()
 ) {
@@ -73,10 +73,11 @@ fun WorkerListScreen(
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
             title = "Workers",
-            subtitle = "$dispTotal registered",
+            subtitle = "$dispTotal active",
             actions = {
-                IconButton(onClick = onAttendance) {
-                    Icon(Icons.Outlined.History, contentDescription = "Attendance", tint = TextPrimary)
+                // Archive — shows all workers ever created (active + inactive)
+                IconButton(onClick = onArchive) {
+                    Icon(Icons.Outlined.History, contentDescription = "Archive", tint = TextPrimary)
                 }
                 IconButton(onClick = onAdvanceEntry) {
                     Icon(Icons.Outlined.Savings, contentDescription = "Advance", tint = TextPrimary)
@@ -140,7 +141,7 @@ fun WorkerListScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Outlined.PersonOutline, contentDescription = null,
                                 tint = TextSecondary, modifier = Modifier.size(48.dp))
-                            Text("No workers added yet", color = TextSecondary, fontSize = 14.sp)
+                            Text("No active workers", color = TextSecondary, fontSize = 14.sp)
                         }
                     }
                 }
@@ -166,12 +167,7 @@ private fun WorkerRow(
     onHistory: () -> Unit,
     isLast: Boolean = false
 ) {
-    val isActive = item.worker.isActive
-    // Dim name and detail text for inactive workers — same visual pattern as inactive products
-    // in StockScreen and ProductMasterScreen.
-    val nameColor   = if (isActive) TextPrimary   else TextSecondary
-    val nameWeight  = if (isActive) FontWeight.W500 else FontWeight.W400
-
+    // Only active workers appear on this screen — no inactive-dimming needed here.
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -183,23 +179,18 @@ private fun WorkerRow(
         ) {
             WorkerAvatar(name = item.worker.name, size = 38.dp, fontSize = 12)
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.worker.name, color = nameColor,
-                    fontSize = 14.sp, fontWeight = nameWeight)
+                Text(text = item.worker.name, color = TextPrimary,
+                    fontSize = 14.sp, fontWeight = FontWeight.W500)
                 val typeStr = if (item.worker.currentType == WorkerType.PIECE)
                     "Piece · ${item.worker.phone}" else
                     "Salary · ${Money.formatRupees(item.worker.dailyRate)}/day"
                 Text(text = typeStr, color = TextSecondary, fontSize = 12.sp)
             }
-            // Active workers → show today's attendance badge.
-            // Inactive workers → show INACTIVE badge (they're not being tracked for attendance).
-            if (isActive) {
-                when (item.isPresentToday) {
-                    true  -> StatusBadge("Present", BadgeType.SUCCESS)
-                    false -> StatusBadge("Absent",  BadgeType.ERROR)
-                    null  -> StatusBadge("—",       BadgeType.INFO)
-                }
-            } else {
-                StatusBadge("Inactive", BadgeType.WARNING)
+            // Today's attendance badge
+            when (item.isPresentToday) {
+                true  -> StatusBadge("Present", BadgeType.SUCCESS)
+                false -> StatusBadge("Absent",  BadgeType.ERROR)
+                null  -> StatusBadge("—",       BadgeType.INFO)
             }
             Box(
                 modifier = Modifier.size(31.dp).clip(CircleShape).clickable { onHistory() },
