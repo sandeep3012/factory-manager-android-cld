@@ -62,6 +62,21 @@ interface AttendanceDao {
     """)
     fun observeAttendanceHistory(date: Long, workerId: Long?): Flow<List<AttendanceEntity>>
 
+    /** Total number of present days across all time for a single worker. */
+    @Query("SELECT COUNT(*) FROM attendance WHERE worker_id = :workerId AND is_present = 1")
+    suspend fun countAllPresentForWorker(workerId: Long): Int
+
+    /** Total number of absent days across all time for a single worker. */
+    @Query("SELECT COUNT(*) FROM attendance WHERE worker_id = :workerId AND is_present = 0")
+    suspend fun countAllAbsentForWorker(workerId: Long): Int
+
+    /** Most recent [limit] attendance rows for a single worker, newest first. */
+    @Query(
+        "SELECT * FROM attendance WHERE worker_id = :workerId " +
+            "ORDER BY date DESC, id DESC LIMIT :limit"
+    )
+    fun observeRecentForWorker(workerId: Long, limit: Int): Flow<List<AttendanceEntity>>
+
     /**
      * Updates the [isPresent] flag on an existing attendance row and stamps audit fields.
      *

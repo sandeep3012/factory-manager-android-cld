@@ -78,19 +78,21 @@ class WorkerViewModel @Inject constructor(
     val filter: StateFlow<WorkerFilter> = _filter.asStateFlow()
 
     val listData: StateFlow<WorkerListData> = combine(
-        repository.observeWorkersWithTodayAttendance(),
+        // Active workers only — WorkerListScreen is an operational screen.
+        // Inactive workers are accessible via the Workers Archive screen.
+        repository.observeActiveWorkersWithTodayAttendance(),
         _filter
-    ) { all, filter ->
+    ) { active, filter ->
         val filtered = when (filter) {
-            WorkerFilter.ALL -> all
-            WorkerFilter.PIECE -> all.filter { it.worker.currentType == WorkerType.PIECE }
-            WorkerFilter.SALARY -> all.filter { it.worker.currentType == WorkerType.SALARY }
+            WorkerFilter.ALL    -> active
+            WorkerFilter.PIECE  -> active.filter { it.worker.currentType == WorkerType.PIECE }
+            WorkerFilter.SALARY -> active.filter { it.worker.currentType == WorkerType.SALARY }
         }
         WorkerListData(
-            workers = filtered,
-            totalCount = all.size,
-            presentCount = all.count { it.isPresentToday == true },
-            absentCount = all.count { it.isPresentToday == false }
+            workers      = filtered,
+            totalCount   = active.size,
+            presentCount = active.count { it.isPresentToday == true },
+            absentCount  = active.count { it.isPresentToday == false }
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorkerListData(emptyList(), 0, 0, 0))
 
@@ -108,22 +110,24 @@ class WorkerViewModel @Inject constructor(
         joiningDate: Long,
         type: WorkerType,
         dailyRate: Int,
+        isActive: Boolean = true,
         onDone: () -> Unit
     ) {
         viewModelScope.launch {
             try {
                 if (existingId == null) {
+                    // New workers are always active; isActive param is intentionally ignored here.
                     repository.saveNewWorker(name, phone, address, joiningDate, type, dailyRate)
                 } else {
-                    // Single atomic call: profile update + conditional type/history change
-                    // in one withTransaction. It is now structurally impossible for this
-                    // path to update currentType/dailyRate without creating a history row.
+                    // Single atomic call: profile update (including isActive) + conditional
+                    // type/history change in one withTransaction.
                     repository.saveWorkerEdit(
                         workerId     = existingId,
                         name         = name,
                         phone        = phone,
                         address      = address,
                         joiningDate  = joiningDate,
+                        isActive     = isActive,
                         newType      = type,
                         newDailyRate = dailyRate
                     )
@@ -151,9 +155,25 @@ class WorkerViewModel @Inject constructor(
         }
     }
 
+    // ── Activate / Deactivate ────────────────────────────────────────────────
+
+    fun setWorkerActive(workerId: Long, isActive: Boolean) {
+        viewModelScope.launch {
+            try { repository.setWorkerActive(workerId, isActive) } catch (_: Exception) {}
+        }
+    }
+
     // Attendance --------------------------------------------------------------
 
+    /** Active workers only — used in operational entry screens (attendance, advance, production). */
     val activeWorkers: StateFlow<List<Worker>> = repository.observeActiveWorkers()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * ALL workers (active + inactive) — used in history / report screens and for
+     * worker name resolution so deactivated workers still appear by name in past records.
+     */
+    val allWorkers: StateFlow<List<Worker>> = repository.observeAllWorkers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val attendancePresentToday: StateFlow<Int> = repository.observePresentCountToday()
@@ -205,8 +225,8 @@ class WorkerViewModel @Inject constructor(
      * the worker filter changes. Uses [flatMapLatest] so in-flight queries are
      * automatically cancelled on filter/date changes.
      *
-     * Worker names are resolved by combining with [activeWorkers]; workers not found
-     * in the active list fall back to "Worker" so stale records remain visible.
+     * Worker names are resolved by combining with [allWorkers] so deactivated workers
+     * still appear by name in historical records rather than falling back to "Worker".
      */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val attendanceHistory: StateFlow<AttendanceHistoryUiState> = combine(
@@ -217,7 +237,9 @@ class WorkerViewModel @Inject constructor(
             val dateMillis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
             combine(
                 repository.observeAttendanceHistory(dateMillis, workerId),
-                activeWorkers
+                // Use allWorkers (not activeWorkers) so deactivated workers still resolve
+                // to their name in historical attendance records.
+                allWorkers
             ) { records: List<AttendanceRecord>, workers: List<Worker> ->
                 val workerMap = workers.associateBy { it.id }
                 AttendanceHistoryUiState(

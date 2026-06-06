@@ -35,4 +35,15 @@ interface WorkerAdvanceDao {
             "WHERE worker_id = :workerId AND date BETWEEN :from AND :to"
     )
     fun observeTotalForWorkerInRange(workerId: Long, from: Long, to: Long): Flow<Int>
+
+    /** Total advances given to a worker across all time. */
+    @Query("SELECT IFNULL(SUM(amount), 0) FROM worker_advances WHERE worker_id = :workerId")
+    suspend fun totalForWorker(workerId: Long): Int
+
+    /** Most recent [limit] advance rows for a worker, newest first. */
+    @Query(
+        "SELECT * FROM worker_advances WHERE worker_id = :workerId " +
+            "ORDER BY date DESC, id DESC LIMIT :limit"
+    )
+    fun observeRecentForWorker(workerId: Long, limit: Int): Flow<List<WorkerAdvanceEntity>>
 }

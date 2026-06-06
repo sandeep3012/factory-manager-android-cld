@@ -20,6 +20,8 @@ object Routes {
 
     const val ADD_WORKER = "add_worker"          // ?workerId={workerId}
     const val WORKER_TYPE_HISTORY = "worker_type_history" // /{workerId}
+    const val WORKER_HISTORY = "worker_history"           // /{workerId}
+    const val WORKERS_ARCHIVE = "workers_archive"
     const val ATTENDANCE = "attendance"
     const val ATTENDANCE_HISTORY = "attendance_history"
     const val ADVANCE_ENTRY = "advance_entry"    // ?workerId={workerId}
@@ -63,6 +65,7 @@ object Routes {
         if (workerId == null) ADD_WORKER else "$ADD_WORKER?workerId=$workerId"
 
     fun workerTypeHistory(workerId: Long): String = "$WORKER_TYPE_HISTORY/$workerId"
+    fun workerHistory(workerId: Long): String = "$WORKER_HISTORY/$workerId"
     fun advanceEntry(workerId: Long? = null): String =
         if (workerId == null) ADVANCE_ENTRY else "$ADVANCE_ENTRY?workerId=$workerId"
 

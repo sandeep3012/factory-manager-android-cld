@@ -56,8 +56,8 @@ import com.kulhad.manager.ui.theme.TextSecondary
 fun WorkerListScreen(
     onAddWorker: () -> Unit,
     onEditWorker: (Long) -> Unit,
-    onTypeHistory: (Long) -> Unit,
-    onAttendance: () -> Unit,
+    onWorkerHistory: (Long) -> Unit,
+    onArchive: () -> Unit,
     onAdvanceEntry: () -> Unit,
     viewModel: WorkerViewModel = hiltViewModel()
 ) {
@@ -73,10 +73,11 @@ fun WorkerListScreen(
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(
             title = "Workers",
-            subtitle = "$dispTotal registered",
+            subtitle = "$dispTotal active",
             actions = {
-                IconButton(onClick = onAttendance) {
-                    Icon(Icons.Outlined.History, contentDescription = "Attendance", tint = TextPrimary)
+                // Archive — shows all workers ever created (active + inactive)
+                IconButton(onClick = onArchive) {
+                    Icon(Icons.Outlined.History, contentDescription = "Archive", tint = TextPrimary)
                 }
                 IconButton(onClick = onAdvanceEntry) {
                     Icon(Icons.Outlined.Savings, contentDescription = "Advance", tint = TextPrimary)
@@ -140,7 +141,7 @@ fun WorkerListScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Outlined.PersonOutline, contentDescription = null,
                                 tint = TextSecondary, modifier = Modifier.size(48.dp))
-                            Text("No workers added yet", color = TextSecondary, fontSize = 14.sp)
+                            Text("No active workers", color = TextSecondary, fontSize = 14.sp)
                         }
                     }
                 }
@@ -150,7 +151,7 @@ fun WorkerListScreen(
                     WorkerRow(
                         item = item,
                         onClick = { onEditWorker(item.worker.id) },
-                        onHistory = { onTypeHistory(item.worker.id) },
+                        onHistory = { onWorkerHistory(item.worker.id) },
                         isLast = isLast
                     )
                 }
@@ -166,6 +167,7 @@ private fun WorkerRow(
     onHistory: () -> Unit,
     isLast: Boolean = false
 ) {
+    // Only active workers appear on this screen — no inactive-dimming needed here.
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -184,6 +186,7 @@ private fun WorkerRow(
                     "Salary · ${Money.formatRupees(item.worker.dailyRate)}/day"
                 Text(text = typeStr, color = TextSecondary, fontSize = 12.sp)
             }
+            // Today's attendance badge
             when (item.isPresentToday) {
                 true  -> StatusBadge("Present", BadgeType.SUCCESS)
                 false -> StatusBadge("Absent",  BadgeType.ERROR)

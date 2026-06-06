@@ -61,7 +61,9 @@ fun AttendanceHistoryScreen(
     viewModel: WorkerViewModel = hiltViewModel()
 ) {
     val uiState    by viewModel.attendanceHistory.collectAsStateWithLifecycle()
-    val allWorkers by viewModel.activeWorkers.collectAsStateWithLifecycle()
+    // Use allWorkers so inactive workers also appear in the filter dropdown —
+    // their historical attendance records are always preserved and should be viewable.
+    val allWorkers by viewModel.allWorkers.collectAsStateWithLifecycle()
     val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
 
     // ── Dialog state ──────────────────────────────────────────────────────────

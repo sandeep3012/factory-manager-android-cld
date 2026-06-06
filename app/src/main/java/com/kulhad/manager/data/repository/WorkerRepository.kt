@@ -76,6 +76,27 @@ class WorkerRepository @Inject constructor(
         }
     }
 
+    /**
+     * Same as [observeWorkersWithTodayAttendance] but restricted to **active** workers only.
+     * Used by [WorkerListScreen] which is an operational screen — inactive workers must not
+     * appear there, but are still accessible via the Workers Archive screen.
+     */
+    fun observeActiveWorkersWithTodayAttendance(): Flow<List<WorkerWithAttendance>> {
+        val today = DateUtils.todayStart()
+        return combine(
+            workerDao.observeActive(),
+            attendanceDao.observeByDate(today)
+        ) { workers, todays ->
+            val map = todays.associateBy { it.workerId }
+            workers.map { w ->
+                WorkerWithAttendance(
+                    worker = w.toDomain(),
+                    isPresentToday = map[w.id]?.isPresent
+                )
+            }
+        }
+    }
+
     suspend fun getWorker(id: Long): Worker? = workerDao.findById(id)?.toDomain()
 
     fun observeWorker(id: Long): Flow<Worker?> =
@@ -135,8 +156,8 @@ class WorkerRepository @Inject constructor(
      * Atomically handles a full worker edit (from AddWorkerScreen).
      *
      * 1. Reads the current DB state so we can compare type/rate.
-     * 2. Updates profile fields (name, phone, address, joiningDate) via [updateProfile]
-     *    — this path structurally cannot touch current_type or daily_rate.
+     * 2. Updates profile fields (name, phone, address, joiningDate, isActive) via [updateProfile].
+     *    current_type and daily_rate are intentionally excluded from this path.
      * 3. If [newType] or [newDailyRate] differ from the stored values:
      *    - Updates current_type / daily_rate on the worker row.
      *    - Inserts a [WorkerTypeHistoryEntity] row.
@@ -149,20 +170,21 @@ class WorkerRepository @Inject constructor(
         phone       : String,
         address     : String,
         joiningDate : Long,
+        isActive    : Boolean,
         newType     : WorkerType,
         newDailyRate: Int
     ) = database.withTransaction {
         val current = workerDao.findById(workerId)
             ?: error("Worker $workerId not found")
 
-        // Profile-only update — type/rate columns are NOT touched.
+        // Profile update — type/rate columns are NOT touched here.
         workerDao.updateProfile(
             id          = workerId,
             name        = name,
             phone       = phone,
             address     = address,
             joiningDate = joiningDate,
-            isActive    = current.isActive  // deactivation is a separate explicit operation
+            isActive    = isActive
         )
 
         // Conditionally update type/rate + append history row.
@@ -202,6 +224,16 @@ class WorkerRepository @Inject constructor(
                 )
             )
         }
+    }
+
+    /**
+     * Immediately flips the [WorkerEntity.isActive] flag without touching any other fields.
+     *
+     * Use this if you need a standalone activate / deactivate action outside the full edit
+     * flow.  The worker's profile, type, rate and history rows are untouched.
+     */
+    suspend fun setWorkerActive(workerId: Long, isActive: Boolean) {
+        workerDao.setActive(workerId, isActive)
     }
 
     fun observeTypeHistory(workerId: Long): Flow<List<WorkerTypeChange>> =
@@ -372,6 +404,52 @@ class WorkerRepository @Inject constructor(
 
     suspend fun firstActiveWorkerOrNull(): Worker? =
         workerDao.observeActive().first().firstOrNull()?.toDomain()
+
+    // -------- Worker History --------
+
+    suspend fun countAllPresentForWorker(workerId: Long): Int =
+        attendanceDao.countAllPresentForWorker(workerId)
+
+    suspend fun countAllAbsentForWorker(workerId: Long): Int =
+        attendanceDao.countAllAbsentForWorker(workerId)
+
+    fun observeRecentAttendanceForWorker(workerId: Long, limit: Int = 5): Flow<List<AttendanceRecord>> =
+        attendanceDao.observeRecentForWorker(workerId, limit).map { rows ->
+            rows.map {
+                AttendanceRecord(
+                    workerId  = it.workerId,
+                    date      = it.date,
+                    isPresent = it.isPresent,
+                    audit     = AuditInfo(
+                        createdBy = it.auditCreatedBy,
+                        createdAt = it.auditCreatedAt,
+                        updatedBy = it.auditUpdatedBy,
+                        updatedAt = it.auditUpdatedAt
+                    )
+                )
+            }
+        }
+
+    suspend fun countProductionEntriesForWorker(workerId: Long): Int =
+        database.productionEntryDao().countEntriesForWorker(workerId)
+
+    suspend fun totalNetQtyForWorker(workerId: Long): Int =
+        database.productionEntryDao().totalNetQtyForWorker(workerId)
+
+    suspend fun totalDefectiveForWorker(workerId: Long): Int =
+        database.productionEntryDao().totalDefectiveForWorker(workerId)
+
+    suspend fun totalEarningsForWorker(workerId: Long): Double =
+        database.productionEntryDao().totalEarningsForWorker(workerId)
+
+    fun observeRecentProductionForWorker(workerId: Long, limit: Int = 5): Flow<List<com.kulhad.manager.data.local.entity.ProductionEntryEntity>> =
+        database.productionEntryDao().observeRecentForWorker(workerId, limit)
+
+    suspend fun totalAdvancesForWorker(workerId: Long): Int =
+        advanceDao.totalForWorker(workerId)
+
+    fun observeRecentAdvancesForWorker(workerId: Long, limit: Int = 5): Flow<List<WorkerAdvanceRecord>> =
+        advanceDao.observeRecentForWorker(workerId, limit).map { list -> list.map { it.toDomain() } }
 }
 
 internal fun WorkerEntity.toDomain(): Worker = Worker(
