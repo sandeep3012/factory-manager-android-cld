@@ -12,6 +12,7 @@ import com.kulhad.manager.data.local.dao.WorkerDao
 import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.domain.model.DailyProduction
+import com.kulhad.manager.domain.model.MonthSummary
 import com.kulhad.manager.domain.model.ProductionReport
 import com.kulhad.manager.domain.model.ProfitLossReport
 import com.kulhad.manager.domain.model.SalaryReport
@@ -61,27 +62,37 @@ class ReportRepository @Inject constructor(
         val percentChange = if (prevProfit == 0) 0.0
         else ((netProfit - prevProfit).toDouble() / kotlin.math.abs(prevProfit)) * 100.0
 
-        // Last 4 months trend
-        val trend = (3 downTo 0).map { offset ->
+        // Last 6 months multi-series trend (oldest month first)
+        val trendFull = (5 downTo 0).map { offset ->
             val anchor = DateUtils.addMonths(monthAnchor, -offset)
             val mFrom = DateUtils.startOfMonth(anchor)
             val mTo = DateUtils.endOfMonth(anchor)
             val s = saleDao.observeTotalInRange(mFrom, mTo).first()
             val l = productionDao.observeLaborCostInRange(mFrom, mTo).first().toInt()
             val e = expenseDao.observeTotalInRange(mFrom, mTo).first()
-            DateUtils.formatMonth(anchor) to (s - l - e)
+            MonthSummary(
+                label      = DateUtils.formatMonth(anchor),
+                revenue    = s,
+                labourCost = l,
+                expenses   = e,
+                netProfit  = s - l - e
+            )
         }
 
         return ProfitLossReport(
-            periodLabel = DateUtils.formatMonth(monthAnchor),
-            totalSales = totalSales,
-            laborCost = laborCost,
-            expenseByType = expensesByType,
-            totalExpenses = totalExpenses,
-            netProfit = netProfit,
-            previousProfit = prevProfit,
-            percentChange = percentChange,
-            monthlyTrend = trend
+            periodLabel       = DateUtils.formatMonth(monthAnchor),
+            totalSales        = totalSales,
+            laborCost         = laborCost,
+            grossProfit       = totalSales - laborCost,
+            expenseByType     = expensesByType,
+            totalExpenses     = totalExpenses,
+            netProfit         = netProfit,
+            previousRevenue   = prevSales,
+            previousLaborCost = prevLabor,
+            previousExpenses  = prevExpenses,
+            previousProfit    = prevProfit,
+            percentChange     = percentChange,
+            trendFull         = trendFull
         )
     }
 
