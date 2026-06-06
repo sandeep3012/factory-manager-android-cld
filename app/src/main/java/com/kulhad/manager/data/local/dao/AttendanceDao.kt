@@ -79,6 +79,19 @@ interface AttendanceDao {
     fun observeRecentForWorker(workerId: Long, limit: Int): Flow<List<AttendanceEntity>>
 
     /**
+     * All attendance rows for a single worker within the date range [from]..[to], sorted oldest-first.
+     *
+     * Used by [WorkerAttendanceDetailScreen] to build the monthly calendar view.
+     * Every day in the result maps to a cell in the calendar — present, absent, or no record
+     * (day absent from the result = no row recorded that day).
+     */
+    @Query(
+        "SELECT * FROM attendance WHERE worker_id = :workerId " +
+            "AND date BETWEEN :from AND :to ORDER BY date ASC"
+    )
+    fun observeWorkerAttendanceInRange(workerId: Long, from: Long, to: Long): Flow<List<AttendanceEntity>>
+
+    /**
      * Per-worker present/absent day counts for the range [from]..[to].
      *
      * Only workers who have at least one attendance row in the range appear.

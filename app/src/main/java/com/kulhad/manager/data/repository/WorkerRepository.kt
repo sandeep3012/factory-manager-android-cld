@@ -460,6 +460,36 @@ class WorkerRepository @Inject constructor(
     fun observeRecentAdvancesForWorker(workerId: Long, limit: Int = 5): Flow<List<WorkerAdvanceRecord>> =
         advanceDao.observeRecentForWorker(workerId, limit).map { list -> list.map { it.toDomain() } }
 
+    // -------- Worker Attendance Detail --------
+
+    /**
+     * Reactive list of all attendance rows for [workerId] in the range [from]..[to].
+     *
+     * Used by [WorkerAttendanceDetailScreen] to build the per-day calendar view.
+     * Ordered oldest-first so callers can map directly to day-of-month.
+     */
+    fun observeWorkerAttendanceInRange(
+        workerId: Long,
+        from: Long,
+        to: Long
+    ): Flow<List<AttendanceRecord>> =
+        attendanceDao.observeWorkerAttendanceInRange(workerId, from, to)
+            .map { rows ->
+                rows.map { entity ->
+                    AttendanceRecord(
+                        workerId  = entity.workerId,
+                        date      = entity.date,
+                        isPresent = entity.isPresent,
+                        audit     = AuditInfo(
+                            createdBy = entity.auditCreatedBy,
+                            createdAt = entity.auditCreatedAt,
+                            updatedBy = entity.auditUpdatedBy,
+                            updatedAt = entity.auditUpdatedAt
+                        )
+                    )
+                }
+            }
+
     // -------- Monthly Attendance Register --------
 
     /**
