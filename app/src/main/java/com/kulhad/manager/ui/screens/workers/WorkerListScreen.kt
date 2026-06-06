@@ -56,7 +56,7 @@ import com.kulhad.manager.ui.theme.TextSecondary
 fun WorkerListScreen(
     onAddWorker: () -> Unit,
     onEditWorker: (Long) -> Unit,
-    onTypeHistory: (Long) -> Unit,
+    onWorkerHistory: (Long) -> Unit,
     onAttendance: () -> Unit,
     onAdvanceEntry: () -> Unit,
     viewModel: WorkerViewModel = hiltViewModel()
@@ -150,7 +150,7 @@ fun WorkerListScreen(
                     WorkerRow(
                         item = item,
                         onClick = { onEditWorker(item.worker.id) },
-                        onHistory = { onTypeHistory(item.worker.id) },
+                        onHistory = { onWorkerHistory(item.worker.id) },
                         isLast = isLast
                     )
                 }
@@ -166,6 +166,12 @@ private fun WorkerRow(
     onHistory: () -> Unit,
     isLast: Boolean = false
 ) {
+    val isActive = item.worker.isActive
+    // Dim name and detail text for inactive workers — same visual pattern as inactive products
+    // in StockScreen and ProductMasterScreen.
+    val nameColor   = if (isActive) TextPrimary   else TextSecondary
+    val nameWeight  = if (isActive) FontWeight.W500 else FontWeight.W400
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -177,17 +183,23 @@ private fun WorkerRow(
         ) {
             WorkerAvatar(name = item.worker.name, size = 38.dp, fontSize = 12)
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.worker.name, color = TextPrimary,
-                    fontSize = 14.sp, fontWeight = FontWeight.W500)
+                Text(text = item.worker.name, color = nameColor,
+                    fontSize = 14.sp, fontWeight = nameWeight)
                 val typeStr = if (item.worker.currentType == WorkerType.PIECE)
                     "Piece · ${item.worker.phone}" else
                     "Salary · ${Money.formatRupees(item.worker.dailyRate)}/day"
                 Text(text = typeStr, color = TextSecondary, fontSize = 12.sp)
             }
-            when (item.isPresentToday) {
-                true  -> StatusBadge("Present", BadgeType.SUCCESS)
-                false -> StatusBadge("Absent",  BadgeType.ERROR)
-                null  -> StatusBadge("—",       BadgeType.INFO)
+            // Active workers → show today's attendance badge.
+            // Inactive workers → show INACTIVE badge (they're not being tracked for attendance).
+            if (isActive) {
+                when (item.isPresentToday) {
+                    true  -> StatusBadge("Present", BadgeType.SUCCESS)
+                    false -> StatusBadge("Absent",  BadgeType.ERROR)
+                    null  -> StatusBadge("—",       BadgeType.INFO)
+                }
+            } else {
+                StatusBadge("Inactive", BadgeType.WARNING)
             }
             Box(
                 modifier = Modifier.size(31.dp).clip(CircleShape).clickable { onHistory() },

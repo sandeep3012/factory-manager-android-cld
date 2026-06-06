@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,8 +37,11 @@ import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SegmentedControl
 import com.kulhad.manager.ui.theme.BgDeep
+import com.kulhad.manager.ui.theme.OverlayWhite07
+import com.kulhad.manager.ui.theme.Success
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextSecondary
+import com.kulhad.manager.ui.theme.TextTertiary
 
 @Composable
 fun AddWorkerScreen(
@@ -44,21 +51,24 @@ fun AddWorkerScreen(
 ) {
     val existing = workerId?.let { viewModel.observeWorker(it).collectAsStateWithLifecycle(null).value }
 
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var joining by remember { mutableStateOf(DateUtils.todayStart()) }
-    var typeStr by remember { mutableStateOf("Piece worker") }
+    var name     by remember { mutableStateOf("") }
+    var phone    by remember { mutableStateOf("") }
+    var address  by remember { mutableStateOf("") }
+    var joining  by remember { mutableStateOf(DateUtils.todayStart()) }
+    var typeStr  by remember { mutableStateOf("Piece worker") }
     var dailyRate by remember { mutableStateOf("") }
+    // isActive only relevant in edit mode; new workers are always active.
+    var isActive by remember { mutableStateOf(true) }
 
     LaunchedEffect(existing?.id) {
         existing?.let {
-            name = it.name
-            phone = it.phone
-            address = it.address
-            joining = it.joiningDate
-            typeStr = if (it.currentType == WorkerType.PIECE) "Piece worker" else "Salary worker"
+            name     = it.name
+            phone    = it.phone
+            address  = it.address
+            joining  = it.joiningDate
+            typeStr  = if (it.currentType == WorkerType.PIECE) "Piece worker" else "Salary worker"
             dailyRate = if (it.dailyRate > 0) it.dailyRate.toString() else ""
+            isActive = it.isActive
         }
     }
 
@@ -124,19 +134,64 @@ fun AddWorkerScreen(
                     )
                 }
             }
+
+            // ── Active / Inactive toggle (edit mode only) ─────────────────────
+            // New workers always start active — no toggle needed on the add form.
+            if (workerId != null) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(SurfaceCard)
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text       = if (isActive) "Active" else "Inactive",
+                                color      = if (isActive) Success else TextSecondary,
+                                fontSize   = 14.sp,
+                                fontWeight = FontWeight.W500
+                            )
+                            Text(
+                                text  = if (isActive)
+                                            "Visible in attendance, production, advance screens"
+                                        else
+                                            "Hidden from entry screens; all history preserved",
+                                color    = TextTertiary,
+                                fontSize = 11.sp
+                            )
+                        }
+                        Switch(
+                            checked         = isActive,
+                            onCheckedChange = { isActive = it },
+                            colors          = SwitchDefaults.colors(
+                                checkedThumbColor   = Success,
+                                checkedTrackColor   = Success.copy(alpha = 0.3f),
+                                uncheckedThumbColor = TextSecondary,
+                                uncheckedTrackColor = OverlayWhite07
+                            )
+                        )
+                    }
+                }
+            }
+
             item {
                 KulhadButton(
                     text = if (workerId == null) "Save Worker" else "Update Worker",
                     onClick = {
                         if (name.isBlank() || phone.isBlank() || address.isBlank()) return@KulhadButton
                         viewModel.saveWorker(
-                            existingId = workerId,
-                            name = name.trim(),
-                            phone = phone.trim(),
-                            address = address.trim(),
+                            existingId  = workerId,
+                            name        = name.trim(),
+                            phone       = phone.trim(),
+                            address     = address.trim(),
                             joiningDate = joining,
-                            type = type,
-                            dailyRate = dailyRate.toIntOrNull() ?: 0
+                            type        = type,
+                            dailyRate   = dailyRate.toIntOrNull() ?: 0,
+                            isActive    = isActive
                         ) { onBack() }
                     }
                 )

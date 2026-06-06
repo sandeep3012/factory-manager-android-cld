@@ -78,6 +78,39 @@ interface ProductionEntryDao {
             "GROUP BY date ORDER BY date ASC"
     )
     fun observeDailyInRange(from: Long, to: Long): Flow<List<DailyQty>>
+
+    // ── Worker history queries ────────────────────────────────────────────────
+
+    /** Count of production entries ever submitted by a worker. */
+    @Query("SELECT COUNT(*) FROM production_entries WHERE worker_id = :workerId")
+    suspend fun countEntriesForWorker(workerId: Long): Int
+
+    /** Total net good quantity ever produced by a worker across all time. */
+    @Query(
+        "SELECT IFNULL(SUM(quantity_produced - defective_quantity), 0) " +
+            "FROM production_entries WHERE worker_id = :workerId"
+    )
+    suspend fun totalNetQtyForWorker(workerId: Long): Int
+
+    /** Total defective quantity ever attributed to a worker. */
+    @Query(
+        "SELECT IFNULL(SUM(defective_quantity), 0) FROM production_entries WHERE worker_id = :workerId"
+    )
+    suspend fun totalDefectiveForWorker(workerId: Long): Int
+
+    /** Total piece earnings for a worker across all time. */
+    @Query(
+        "SELECT IFNULL(SUM((quantity_produced - defective_quantity) * rate_snapshot), 0) " +
+            "FROM production_entries WHERE worker_id = :workerId"
+    )
+    suspend fun totalEarningsForWorker(workerId: Long): Double
+
+    /** Most recent [limit] production entries for a worker, newest first. */
+    @Query(
+        "SELECT * FROM production_entries WHERE worker_id = :workerId " +
+            "ORDER BY date DESC, id DESC LIMIT :limit"
+    )
+    fun observeRecentForWorker(workerId: Long, limit: Int): Flow<List<ProductionEntryEntity>>
 }
 
 data class ProductQty(val productId: Long, val qty: Int)
