@@ -1,5 +1,6 @@
 package com.kulhad.manager.data.local.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -78,6 +79,36 @@ interface AttendanceDao {
     fun observeRecentForWorker(workerId: Long, limit: Int): Flow<List<AttendanceEntity>>
 
     /**
+     * All attendance rows for a single worker within the date range [from]..[to], sorted oldest-first.
+     *
+     * Used by [WorkerAttendanceDetailScreen] to build the monthly calendar view.
+     * Every day in the result maps to a cell in the calendar — present, absent, or no record
+     * (day absent from the result = no row recorded that day).
+     */
+    @Query(
+        "SELECT * FROM attendance WHERE worker_id = :workerId " +
+            "AND date BETWEEN :from AND :to ORDER BY date ASC"
+    )
+    fun observeWorkerAttendanceInRange(workerId: Long, from: Long, to: Long): Flow<List<AttendanceEntity>>
+
+    /**
+     * Per-worker present/absent day counts for the range [from]..[to].
+     *
+     * Only workers who have at least one attendance row in the range appear.
+     * Callers must outer-join with the full worker list to include workers
+     * with no rows in the period (their counts default to zero).
+     */
+    @Query("""
+        SELECT worker_id,
+               SUM(CASE WHEN is_present = 1 THEN 1 ELSE 0 END) AS present_count,
+               SUM(CASE WHEN is_present = 0 THEN 1 ELSE 0 END) AS absent_count
+        FROM attendance
+        WHERE date BETWEEN :from AND :to
+        GROUP BY worker_id
+    """)
+    fun observeMonthlyWorkerCounts(from: Long, to: Long): Flow<List<WorkerMonthlyCount>>
+
+    /**
      * Updates the [isPresent] flag on an existing attendance row and stamps audit fields.
      *
      * Uses a targeted UPDATE — never inserts — so duplicate rows are structurally impossible.
@@ -107,4 +138,11 @@ interface AttendanceDao {
 data class DailyAttendanceCount(
     val day: Long,
     val presentCount: Int
+)
+
+/** Per-worker present/absent counts returned by [AttendanceDao.observeMonthlyWorkerCounts]. */
+data class WorkerMonthlyCount(
+    @ColumnInfo(name = "worker_id")    val workerId: Long,
+    @ColumnInfo(name = "present_count") val presentCount: Int,
+    @ColumnInfo(name = "absent_count")  val absentCount: Int
 )

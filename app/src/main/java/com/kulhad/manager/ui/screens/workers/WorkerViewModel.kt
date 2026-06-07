@@ -57,6 +57,30 @@ data class AttendanceHistoryUiState(
     val attendance: List<AttendanceUi> = emptyList()
 )
 
+// ── Attendance screen UI state ───────────────────────────────────────────────
+
+/** A single inactive worker row shown read-only on past-date attendance views. */
+data class InactiveWorkerAttendance(
+    val worker: Worker,
+    val isPresent: Boolean
+)
+
+/**
+ * Unified state for [AttendanceScreen].
+ *
+ * [isCurrentDate] — true when the selected working date equals today.
+ * [activeWorkers] — currently active workers; always shown, always editable.
+ * [inactiveAttendanceRows] — inactive workers who have a saved record on the selected
+ *   date; only populated for past dates (always empty when [isCurrentDate] is true).
+ * [attendanceMap] — saved DB state (workerId → isPresent) for all workers on the date.
+ */
+data class AttendanceScreenState(
+    val isCurrentDate: Boolean = true,
+    val activeWorkers: List<Worker> = emptyList(),
+    val inactiveAttendanceRows: List<InactiveWorkerAttendance> = emptyList(),
+    val attendanceMap: Map<Long, Boolean> = emptyMap()
+)
+
 @HiltViewModel
 class WorkerViewModel @Inject constructor(
     private val repository: WorkerRepository,
@@ -176,11 +200,34 @@ class WorkerViewModel @Inject constructor(
     val allWorkers: StateFlow<List<Worker>> = repository.observeAllWorkers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val attendancePresentToday: StateFlow<Int> = repository.observePresentCountToday()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    /**
+     * Present count for the currently selected working date.
+     *
+     * Re-queries whenever the working date changes via [WorkingDateManager].
+     * [flatMapLatest] cancels the previous DB subscription the moment a new date is selected.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val attendancePresentToday: StateFlow<Int> =
+        workingDateManager.currentWorkingDate
+            .flatMapLatest { date ->
+                val epochMilli = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                repository.observePresentCountForDate(epochMilli)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    val attendanceAbsentToday: StateFlow<Int> = repository.observeAbsentCountToday()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    /**
+     * Absent count for the currently selected working date.
+     *
+     * Same date-reactive pattern as [attendancePresentToday].
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val attendanceAbsentToday: StateFlow<Int> =
+        workingDateManager.currentWorkingDate
+            .flatMapLatest { date ->
+                val epochMilli = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                repository.observeAbsentCountForDate(epochMilli)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     val attendanceTrend: StateFlow<List<Pair<Long, Int>>> = repository.observeAttendanceTrend(7)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -200,6 +247,55 @@ class WorkerViewModel @Inject constructor(
                 repository.observeAttendanceForDate(epochMilli)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /**
+     * Unified state for [AttendanceScreen].
+     *
+     * For the current date: [AttendanceScreenState.inactiveAttendanceRows] is always
+     * empty — only active workers are shown and editable.
+     *
+     * For past dates: inactive workers who have a saved attendance record on that date
+     * are surfaced as read-only rows in [AttendanceScreenState.inactiveAttendanceRows].
+     * They are identified by joining [repository.observeAllWorkers] with the date's
+     * attendance map — workers absent from [allWorkers] or currently active are excluded.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val attendanceScreenState: StateFlow<AttendanceScreenState> =
+        workingDateManager.currentWorkingDate
+            .flatMapLatest { date ->
+                val epochMilli = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                val isCurrentDate = date.isEqual(LocalDate.now())
+                combine(
+                    repository.observeActiveWorkers(),
+                    repository.observeAllWorkers(),
+                    repository.observeAttendanceForDate(epochMilli)
+                ) { activeWorkers, allWorkers, attendanceMap ->
+                    val inactiveWithRecords: List<InactiveWorkerAttendance> =
+                        if (isCurrentDate) emptyList()
+                        else {
+                            val workerMap = allWorkers.associateBy { it.id }
+                            attendanceMap.entries
+                                .mapNotNull { (workerId, isPresent) ->
+                                    val w = workerMap[workerId]
+                                    if (w != null && !w.isActive) {
+                                        InactiveWorkerAttendance(worker = w, isPresent = isPresent)
+                                    } else null
+                                }
+                                .sortedBy { it.worker.name }
+                        }
+                    AttendanceScreenState(
+                        isCurrentDate          = isCurrentDate,
+                        activeWorkers          = activeWorkers,
+                        inactiveAttendanceRows = inactiveWithRecords,
+                        attendanceMap          = attendanceMap
+                    )
+                }
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                AttendanceScreenState()
+            )
 
     fun saveAttendance(presence: Map<Long, Boolean>, onDone: () -> Unit) {
         viewModelScope.launch {
