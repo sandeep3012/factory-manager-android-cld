@@ -14,7 +14,9 @@ enum class SaleStatus { PAID, PARTIAL, UNPAID }
  */
 data class Sale(
     val id: Long,
+    val customerId: Long,
     val customerName: String,
+    val customerPhone: String,
     val date: Long,
     val totalAmount: Int,
     val createdBy: Long,

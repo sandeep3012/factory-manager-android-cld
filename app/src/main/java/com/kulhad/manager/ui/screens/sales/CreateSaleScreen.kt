@@ -16,8 +16,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -26,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kulhad.manager.ui.components.bottomSheetContentInsets
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kulhad.manager.data.util.Money
+import com.kulhad.manager.domain.model.Customer
 import com.kulhad.manager.domain.model.SaleItemDraft
 import kotlin.math.roundToInt
 import com.kulhad.manager.ui.components.KulhadButton
@@ -51,26 +56,44 @@ import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.components.SizePillGrid
 import com.kulhad.manager.ui.components.WorkingDateChip
+import com.kulhad.manager.ui.screens.customers.CustomerViewModel
 import com.kulhad.manager.ui.theme.BgDeep
+import com.kulhad.manager.ui.theme.BorderLine
 import com.kulhad.manager.ui.theme.PrimaryBlue
 import com.kulhad.manager.ui.theme.Success
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextPrimary
 import com.kulhad.manager.ui.theme.TextSecondary
+import com.kulhad.manager.ui.theme.TextTertiary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateSaleScreen(
     onBack: () -> Unit,
-    viewModel: SalesViewModel = hiltViewModel()
+    viewModel: SalesViewModel = hiltViewModel(),
+    customerViewModel: CustomerViewModel = hiltViewModel()
 ) {
     val products by viewModel.products.collectAsStateWithLifecycle()
     val saleError by viewModel.saleError.collectAsStateWithLifecycle()
     val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
-    var customerName by remember { mutableStateOf("") }
+    val activeCustomers by customerViewModel.activeCustomers.collectAsStateWithLifecycle()
+    val lastCreatedId by customerViewModel.lastCreatedId.collectAsStateWithLifecycle()
+
+    var selectedCustomer by remember { mutableStateOf<Customer?>(null) }
     val items = remember { mutableStateListOf<SaleItemDraft>() }
-    var showSheet by remember { mutableStateOf(false) }
+    var showItemSheet by remember { mutableStateOf(false) }
+    var showCustomerSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    // Auto-select a customer that was just quick-added via the picker sheet
+    LaunchedEffect(lastCreatedId, activeCustomers) {
+        val newId = lastCreatedId ?: return@LaunchedEffect
+        val newCustomer = activeCustomers.firstOrNull { it.id == newId }
+        if (newCustomer != null) {
+            selectedCustomer = newCustomer
+            customerViewModel.clearLastCreatedId()
+        }
+    }
 
     val total = items.sumOf { it.total }
 
@@ -80,12 +103,36 @@ fun CreateSaleScreen(
             contentPadding = PaddingValues(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // ── Customer picker ──────────────────────────────────────────────
             item {
-                KulhadTextField(
-                    label = "Customer name",
-                    value = customerName,
-                    onValueChange = { customerName = it }
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SurfaceCard)
+                        .clickable { showCustomerSheet = true }
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Outlined.Person, contentDescription = null, tint = if (selectedCustomer != null) PrimaryBlue else TextTertiary)
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (selectedCustomer != null) {
+                            Text(text = selectedCustomer!!.name, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.W500)
+                            Text(
+                                text = "${selectedCustomer!!.customerCode} · ${selectedCustomer!!.customerType}",
+                                color = TextTertiary,
+                                fontSize = 12.sp
+                            )
+                            if (selectedCustomer!!.mobileNumber.isNotBlank()) {
+                                Text(text = selectedCustomer!!.mobileNumber, color = TextSecondary, fontSize = 13.sp)
+                            }
+                        } else {
+                            Text(text = "Select customer", color = TextTertiary, fontSize = 16.sp)
+                        }
+                    }
+                    Icon(Icons.Outlined.KeyboardArrowRight, contentDescription = null, tint = TextTertiary)
+                }
             }
             item {
                 WorkingDateChip(
@@ -139,7 +186,7 @@ fun CreateSaleScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(SurfaceCard)
-                        .clickable { showSheet = true }
+                        .clickable { showItemSheet = true }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -165,9 +212,9 @@ fun CreateSaleScreen(
             item {
                 KulhadButton(
                     text = "Save Sale",
-                    enabled = customerName.isNotBlank() && items.isNotEmpty(),
+                    enabled = selectedCustomer != null && items.isNotEmpty(),
                     onClick = {
-                        viewModel.createSale(customerName.trim(), items.toList()) {
+                        viewModel.createSale(selectedCustomer!!.id, items.toList()) {
                             onBack()
                         }
                     }
@@ -204,21 +251,108 @@ fun CreateSaleScreen(
         )
     }
 
-    if (showSheet) {
+    if (showItemSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showSheet = false },
+            onDismissRequest = { showItemSheet = false },
             sheetState = sheetState,
             containerColor = SurfaceCard,
-            windowInsets = WindowInsets(0) // Content handles nav-bar and IME insets
+            windowInsets = WindowInsets(0)
         ) {
             AddItemSheet(
                 products = products,
                 viewModel = viewModel,
                 onAdd = { d ->
                     items.add(d)
-                    showSheet = false
+                    showItemSheet = false
                 }
             )
+        }
+    }
+
+    if (showCustomerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showCustomerSheet = false },
+            sheetState = rememberModalBottomSheetState(),
+            containerColor = SurfaceCard,
+            windowInsets = WindowInsets(0)
+        ) {
+            CustomerPickerSheet(
+                customers = activeCustomers,
+                onSelect = { customer ->
+                    selectedCustomer = customer
+                    showCustomerSheet = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomerPickerSheet(
+    customers: List<Customer>,
+    onSelect: (Customer) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    val maxScrollHeight = (LocalConfiguration.current.screenHeightDp * 0.65f).dp
+    val filtered = remember(query, customers) {
+        if (query.isBlank()) customers
+        else customers.filter {
+            it.name.contains(query, ignoreCase = true) ||
+                it.mobileNumber.contains(query, ignoreCase = true)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bottomSheetContentInsets()
+    ) {
+        Text(
+            text = "Select Customer",
+            color = TextPrimary,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.W500,
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
+        )
+        KulhadTextField(
+            label = "Search",
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxScrollHeight),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(filtered, key = { it.id }) { customer ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onSelect(customer) }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = customer.name, color = TextPrimary, fontSize = 16.sp)
+                        Text(
+                            text = "${customer.customerCode} · ${customer.customerType}",
+                            color = TextTertiary,
+                            fontSize = 12.sp
+                        )
+                        if (customer.mobileNumber.isNotBlank()) {
+                            Text(text = customer.mobileNumber, color = TextSecondary, fontSize = 13.sp)
+                        }
+                    }
+                }
+                HorizontalDivider(color = BorderLine.copy(alpha = 0.4f))
+            }
         }
     }
 }

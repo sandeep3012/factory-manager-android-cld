@@ -113,14 +113,14 @@ class SalesViewModel @Inject constructor(
     fun clearSaleError() { _saleError.value = null }
 
     fun createSale(
-        customerName: String,
+        customerId: Long,
         items: List<SaleItemDraft>,
         onDone: (Long) -> Unit
     ) {
         viewModelScope.launch {
             try {
                 val id = saleRepository.createSale(
-                    customerName = customerName,
+                    customerId = customerId,
                     date = workingDateManager.currentEpochMilli(),
                     items = items,
                     userId = sessionManager.currentUserId

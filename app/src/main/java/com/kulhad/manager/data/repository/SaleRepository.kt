@@ -2,11 +2,13 @@ package com.kulhad.manager.data.repository
 
 import androidx.room.withTransaction
 import com.kulhad.manager.data.local.KulhadDatabase
+import com.kulhad.manager.data.local.dao.CustomerDao
 import com.kulhad.manager.data.local.dao.PaymentDao
 import com.kulhad.manager.data.local.dao.ProductDao
 import com.kulhad.manager.data.local.dao.SaleDao
 import com.kulhad.manager.data.local.dao.SaleItemDao
 import com.kulhad.manager.data.local.dao.StockLedgerDao
+import com.kulhad.manager.data.local.entity.CustomerEntity
 import com.kulhad.manager.data.local.entity.PaymentEntity
 import com.kulhad.manager.data.local.entity.SaleEntity
 import com.kulhad.manager.data.local.entity.SaleItemEntity
@@ -34,6 +36,7 @@ import kotlinx.coroutines.flow.map
 @Singleton
 class SaleRepository @Inject constructor(
     private val database: KulhadDatabase,
+    private val customerDao: CustomerDao,
     private val saleDao: SaleDao,
     private val saleItemDao: SaleItemDao,
     private val paymentDao: PaymentDao,
@@ -55,7 +58,7 @@ class SaleRepository @Inject constructor(
      * a line item never triggers a false rejection.
      */
     suspend fun createSale(
-        customerName: String,
+        customerId: Long,
         date: Long,
         items: List<SaleItemDraft>,
         userId: Long,
@@ -64,14 +67,13 @@ class SaleRepository @Inject constructor(
         require(items.isNotEmpty()) { "Sale must have at least one item" }
 
         // ── Stock validation ─────────────────────────────────────────────────
-        // Aggregate total requested quantity per product (handles duplicate size rows).
         val requestedByProduct: Map<Long, Int> = items
             .groupBy { it.productId }
             .mapValues { (_, drafts) -> drafts.sumOf { it.quantity } }
 
         requestedByProduct.forEach { (productId, totalRequested) ->
             val previousQty = previousQuantities[productId] ?: 0
-            val extraNeeded  = totalRequested - previousQty   // ≤ 0 means a reduction — always safe
+            val extraNeeded  = totalRequested - previousQty
             if (extraNeeded > 0) {
                 val available = stockLedgerDao.getCurrentStock(productId)
                 if (extraNeeded > available) {
@@ -83,11 +85,12 @@ class SaleRepository @Inject constructor(
         }
         // ── End validation — nothing has been written yet ────────────────────
 
+        val customerName = customerDao.findById(customerId)?.name ?: "Customer #$customerId"
         val total  = items.sumOf { it.total }
         val audit  = AuditUtils.createAudit(userSessionManager.currentUser.value)
         val saleId = saleDao.insert(
             SaleEntity(
-                customerName   = customerName,
+                customerId     = customerId,
                 date           = DateUtils.startOfDay(date),
                 totalAmount    = total,
                 createdBy      = userId,
@@ -96,7 +99,7 @@ class SaleRepository @Inject constructor(
             )
         )
 
-        val now = audit.createdAt   // reuse same timestamp for all ledger rows in this batch
+        val now = audit.createdAt
         items.forEach { d ->
             saleItemDao.insert(
                 SaleItemEntity(
@@ -163,12 +166,20 @@ class SaleRepository @Inject constructor(
     }
 
     fun observeAllSales(): Flow<List<Sale>> =
-        saleDao.observeAll().map { list -> list.map { it.toDomain() } }
+        combine(saleDao.observeAll(), customerDao.observeAll()) { sales, customers ->
+            val customerById = customers.associateBy { it.id }
+            sales.map { it.toDomain(customerById[it.customerId]) }
+        }
 
     fun observeAllSummaries(): Flow<List<SaleSummary>> =
-        combine(saleDao.observeAll(), paymentDao.observeAllSalePaid()) { sales, paid ->
+        combine(
+            saleDao.observeAll(),
+            paymentDao.observeAllSalePaid(),
+            customerDao.observeAll()
+        ) { sales, paid, customers ->
             val paidById = paid.associate { it.saleId to it.paid }
-            sales.map { it.toSummary(paidById[it.id] ?: 0) }
+            val customerById = customers.associateBy { it.id }
+            sales.map { it.toSummary(paidById[it.id] ?: 0, customerById[it.customerId]) }
         }
 
     fun observePendingSummaries(): Flow<List<SaleSummary>> =
@@ -180,16 +191,17 @@ class SaleRepository @Inject constructor(
             saleItemDao.observeForSale(saleId),
             paymentDao.observeForSale(saleId),
             // ALL products — a sale detail is historical data; product may have been
-            // deactivated after the sale was created. observeActive() would return null
-            // for such products, corrupting productSize to 0 in SaleItem.
-            productDao.observeAll()
-        ) { sale, items, payments, products ->
+            // deactivated after the sale was created.
+            productDao.observeAll(),
+            customerDao.observeAll()
+        ) { sale, items, payments, products, customers ->
             if (sale == null) return@combine null
             val sizeById = products.associate { it.id to it.sizeMl }
+            val customerById = customers.associateBy { it.id }
             val paid = payments.sumOf { it.amount }
             val pending = (sale.totalAmount - paid).coerceAtLeast(0)
             SaleDetail(
-                sale = sale.toDomain(),
+                sale = sale.toDomain(customerById[sale.customerId]),
                 items = items.map { i ->
                     SaleItem(
                         id = i.id,
@@ -253,13 +265,15 @@ class SaleRepository @Inject constructor(
     fun observeSalesToday(): Flow<Int> =
         saleDao.observeTotalInRange(DateUtils.todayStart(), DateUtils.todayEnd())
 
-    private fun SaleEntity.toDomain(): Sale = Sale(
-        id           = id,
-        customerName = customerName,
-        date         = date,
-        totalAmount  = totalAmount,
-        createdBy    = createdBy,
-        audit        = AuditInfo(
+    private fun SaleEntity.toDomain(customer: CustomerEntity?): Sale = Sale(
+        id            = id,
+        customerId    = customerId,
+        customerName  = customer?.name ?: "Unknown",
+        customerPhone = customer?.mobileNumber ?: "",
+        date          = date,
+        totalAmount   = totalAmount,
+        createdBy     = createdBy,
+        audit         = AuditInfo(
             createdBy = auditCreatedBy,
             createdAt = auditCreatedAt,
             updatedBy = auditUpdatedBy,
@@ -267,10 +281,10 @@ class SaleRepository @Inject constructor(
         )
     )
 
-    private fun SaleEntity.toSummary(paid: Int): SaleSummary {
+    private fun SaleEntity.toSummary(paid: Int, customer: CustomerEntity?): SaleSummary {
         val pending = (totalAmount - paid).coerceAtLeast(0)
         return SaleSummary(
-            sale = toDomain(),
+            sale = toDomain(customer),
             paid = paid,
             pending = pending,
             status = statusFor(totalAmount, paid)

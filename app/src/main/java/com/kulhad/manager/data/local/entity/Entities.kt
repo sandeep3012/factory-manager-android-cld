@@ -245,12 +245,40 @@ data class StockLedgerEntity(
 )
 
 // =====================================================================================
-// 9. sales
+// 9. customers
+// =====================================================================================
+
+@Entity(
+    tableName = "customers",
+    indices = [Index("name"), Index("is_active")]
+)
+data class CustomerEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "customer_code", defaultValue = "''") val customerCode: String = "",
+    val name: String,
+    @ColumnInfo(name = "mobile_number", defaultValue = "''") val mobileNumber: String = "",
+    @ColumnInfo(defaultValue = "''") val address: String = "",
+    @ColumnInfo(name = "customer_type", defaultValue = "'Retail'") val customerType: String = "Retail",
+    @ColumnInfo(name = "is_active", defaultValue = "1") val isActive: Boolean = true,
+    @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
+    @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
+    @ColumnInfo(name = "audit_updated_by") val auditUpdatedBy: String? = null,
+    @ColumnInfo(name = "audit_updated_at") val auditUpdatedAt: Long? = null
+)
+
+// =====================================================================================
+// 10. sales
 // =====================================================================================
 
 @Entity(
     tableName = "sales",
     foreignKeys = [
+        ForeignKey(
+            entity = CustomerEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["customer_id"],
+            onDelete = RESTRICT
+        ),
         ForeignKey(
             entity = UserEntity::class,
             parentColumns = ["id"],
@@ -258,14 +286,13 @@ data class StockLedgerEntity(
             onDelete = SET_DEFAULT
         )
     ],
-    indices = [Index("created_by"), Index("date")]
+    indices = [Index("customer_id"), Index("created_by"), Index("date")]
 )
 data class SaleEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @ColumnInfo(name = "customer_name") val customerName: String,
+    @ColumnInfo(name = "customer_id") val customerId: Long,
     val date: Long,
     @ColumnInfo(name = "total_amount") val totalAmount: Int,
-    // Existing FK-based tracking (user ID integer) — kept for relational queries
     @ColumnInfo(name = "created_by", defaultValue = "0") val createdBy: Long,
     // ── Audit columns (TEXT display-name, survives user deletion) ─────────────
     @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
@@ -275,7 +302,7 @@ data class SaleEntity(
 )
 
 // =====================================================================================
-// 10. sale_items
+// 11. sale_items
 // =====================================================================================
 
 @Entity(
@@ -305,7 +332,7 @@ data class SaleItemEntity(
 )
 
 // =====================================================================================
-// 11. payments
+// 12. payments
 // =====================================================================================
 
 @Entity(
@@ -334,7 +361,7 @@ data class PaymentEntity(
 )
 
 // =====================================================================================
-// 12. expense_types
+// 13. expense_types
 // =====================================================================================
 
 @Entity(
@@ -348,7 +375,7 @@ data class ExpenseTypeEntity(
 )
 
 // =====================================================================================
-// 13. expenses
+// 14. expenses
 // =====================================================================================
 
 @Entity(
@@ -384,7 +411,7 @@ data class ExpenseEntity(
 )
 
 // =====================================================================================
-// 14. worker_advances
+// 15. worker_advances
 // =====================================================================================
 
 @Entity(
