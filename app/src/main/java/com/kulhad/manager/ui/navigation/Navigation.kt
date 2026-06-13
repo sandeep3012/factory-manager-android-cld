@@ -27,7 +27,8 @@ object Routes {
     const val ATTENDANCE_DETAIL = "attendance_detail"  // /{workerId}/{month}
     const val ADVANCE_ENTRY = "advance_entry"    // ?workerId={workerId}
 
-    const val ADD_PRODUCTION = "add_production"
+    const val ADD_PRODUCTION  = "add_production"
+    const val EDIT_PRODUCTION = "edit_production"  // /{entryId}
     const val PRODUCTION_HISTORY = "production_history"
 
     const val CREATE_SALE = "create_sale"
@@ -71,6 +72,7 @@ object Routes {
     fun advanceEntry(workerId: Long? = null): String =
         if (workerId == null) ADVANCE_ENTRY else "$ADVANCE_ENTRY?workerId=$workerId"
 
+    fun editProduction(entryId: Long): String = "$EDIT_PRODUCTION/$entryId"
     fun paymentEntry(saleId: Long): String = "$PAYMENT_ENTRY/$saleId"
     fun stockLedger(productId: Long): String = "$STOCK_LEDGER/$productId"
     fun productRateHistory(productId: Long): String = "$PRODUCT_RATE_HISTORY/$productId"

@@ -24,6 +24,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
 
+private data class LabourCostBreakdown(
+    val pieceLabourCost: Int,
+    val salaryLabourCost: Int,
+    val totalLabourCost: Int
+)
+
 @Singleton
 class ReportRepository @Inject constructor(
     private val saleDao: SaleDao,
@@ -37,27 +43,62 @@ class ReportRepository @Inject constructor(
     private val productDao: ProductDao
 ) {
 
+    /**
+     * Gross labour cost for a date range, split by worker type.
+     *
+     * PIECE workers: earnings come from production output only.
+     *   → productionDao.earningsForWorkerInRange(workerId, from, to)
+     *
+     * SALARY workers: earnings come from attendance only.
+     *   → attendanceDao.countPresentInRange(workerId, from, to) × worker.dailyRate
+     *   Production entries submitted by salary workers are intentionally ignored here —
+     *   they count for stock and analytics but must not contribute to labour cost.
+     *
+     * Uses gross earnings (before advance deduction) because advances are a separate
+     * cash-flow item, not a period operating cost.
+     */
+    private suspend fun labourCostsForRange(from: Long, to: Long): LabourCostBreakdown {
+        val workers = workerDao.observeAll().first()
+        var piece = 0
+        var salary = 0
+        workers.forEach { w ->
+            val type = runCatching { WorkerType.valueOf(w.currentType) }.getOrDefault(WorkerType.PIECE)
+            if (type == WorkerType.PIECE) {
+                piece += productionDao.earningsForWorkerInRange(w.id, from, to).toInt()
+            } else {
+                // SALARY worker — use attendance × daily rate, NOT production earnings
+                val daysPresent = attendanceDao.countPresentInRange(w.id, from, to)
+                salary += daysPresent * w.dailyRate
+            }
+        }
+        return LabourCostBreakdown(
+            pieceLabourCost  = piece,
+            salaryLabourCost = salary,
+            totalLabourCost  = piece + salary
+        )
+    }
+
     suspend fun profitLossForMonth(monthAnchor: Long): ProfitLossReport {
         val from = DateUtils.startOfMonth(monthAnchor)
         val to = DateUtils.endOfMonth(monthAnchor)
 
         val totalSales = saleDao.observeTotalInRange(from, to).first()
-        val laborCost = productionDao.observeLaborCostInRange(from, to).first().toInt()
+        val labour = labourCostsForRange(from, to)
 
         val types = expenseTypeDao.observeActive().first().associate { it.id to it.name }
         val breakdown = expenseDao.observeBreakdownInRange(from, to).first()
         val expensesByType = breakdown.map { (types[it.typeId] ?: "Other") to it.amount }
         val totalExpenses = breakdown.sumOf { it.amount }
 
-        val netProfit = totalSales - laborCost - totalExpenses
+        val netProfit = totalSales - labour.totalLabourCost - totalExpenses
 
         val prevAnchor = DateUtils.addMonths(monthAnchor, -1)
         val prevFrom = DateUtils.startOfMonth(prevAnchor)
         val prevTo = DateUtils.endOfMonth(prevAnchor)
         val prevSales = saleDao.observeTotalInRange(prevFrom, prevTo).first()
-        val prevLabor = productionDao.observeLaborCostInRange(prevFrom, prevTo).first().toInt()
+        val prevLabour = labourCostsForRange(prevFrom, prevTo)
         val prevExpenses = expenseDao.observeTotalInRange(prevFrom, prevTo).first()
-        val prevProfit = prevSales - prevLabor - prevExpenses
+        val prevProfit = prevSales - prevLabour.totalLabourCost - prevExpenses
 
         val percentChange = if (prevProfit == 0) 0.0
         else ((netProfit - prevProfit).toDouble() / kotlin.math.abs(prevProfit)) * 100.0
@@ -68,31 +109,33 @@ class ReportRepository @Inject constructor(
             val mFrom = DateUtils.startOfMonth(anchor)
             val mTo = DateUtils.endOfMonth(anchor)
             val s = saleDao.observeTotalInRange(mFrom, mTo).first()
-            val l = productionDao.observeLaborCostInRange(mFrom, mTo).first().toInt()
+            val mLabour = labourCostsForRange(mFrom, mTo)
             val e = expenseDao.observeTotalInRange(mFrom, mTo).first()
             MonthSummary(
                 label      = DateUtils.formatMonth(anchor),
                 revenue    = s,
-                labourCost = l,
+                labourCost = mLabour.totalLabourCost,
                 expenses   = e,
-                netProfit  = s - l - e
+                netProfit  = s - mLabour.totalLabourCost - e
             )
         }
 
         return ProfitLossReport(
-            periodLabel       = DateUtils.formatMonth(monthAnchor),
-            totalSales        = totalSales,
-            laborCost         = laborCost,
-            grossProfit       = totalSales - laborCost,
-            expenseByType     = expensesByType,
-            totalExpenses     = totalExpenses,
-            netProfit         = netProfit,
-            previousRevenue   = prevSales,
-            previousLaborCost = prevLabor,
-            previousExpenses  = prevExpenses,
-            previousProfit    = prevProfit,
-            percentChange     = percentChange,
-            trendFull         = trendFull
+            periodLabel             = DateUtils.formatMonth(monthAnchor),
+            totalSales              = totalSales,
+            pieceLabourCost         = labour.pieceLabourCost,
+            salaryLabourCost        = labour.salaryLabourCost,
+            totalLabourCost         = labour.totalLabourCost,
+            grossProfit             = totalSales - labour.totalLabourCost,
+            expenseByType           = expensesByType,
+            totalExpenses           = totalExpenses,
+            netProfit               = netProfit,
+            previousRevenue         = prevSales,
+            previousTotalLabourCost = prevLabour.totalLabourCost,
+            previousExpenses        = prevExpenses,
+            previousProfit          = prevProfit,
+            percentChange           = percentChange,
+            trendFull               = trendFull
         )
     }
 

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.kulhad.manager.data.local.entity.ProductionEntryEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +13,12 @@ interface ProductionEntryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: ProductionEntryEntity): Long
+
+    @Update
+    suspend fun update(entry: ProductionEntryEntity)
+
+    @Query("SELECT * FROM production_entries WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): ProductionEntryEntity?
 
     @Query("SELECT * FROM production_entries ORDER BY date DESC, id DESC")
     fun observeAll(): Flow<List<ProductionEntryEntity>>
@@ -51,6 +58,23 @@ interface ProductionEntryDao {
             "FROM production_entries WHERE worker_id = :workerId AND date BETWEEN :from AND :to"
     )
     suspend fun earningsForWorkerInRange(workerId: Long, from: Long, to: Long): Double
+
+    /**
+     * Reactive per-worker piece earnings for a date range.
+     *
+     * Returns only workers who have at least one production entry in [from]..[to].
+     * Workers absent from the result contributed ₹0 in that period.
+     * Used by [ProfitabilityRepository] to build a worker-type-aware labour cost flow
+     * without requiring a suspend context.
+     */
+    @Query("""
+        SELECT worker_id AS workerId,
+               IFNULL(SUM((quantity_produced - defective_quantity) * rate_snapshot), 0.0) AS earnings
+        FROM production_entries
+        WHERE date BETWEEN :from AND :to
+        GROUP BY worker_id
+    """)
+    fun observeEarningsByWorkerInRange(from: Long, to: Long): Flow<List<WorkerEarnings>>
 
     @Query(
         "SELECT IFNULL(SUM(quantity_produced - defective_quantity), 0) " +
@@ -116,3 +140,4 @@ interface ProductionEntryDao {
 data class ProductQty(val productId: Long, val qty: Int)
 data class WorkerQty(val workerId: Long, val qty: Int)
 data class DailyQty(val day: Long, val qty: Int)
+data class WorkerEarnings(val workerId: Long, val earnings: Double)

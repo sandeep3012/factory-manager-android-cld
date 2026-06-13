@@ -241,8 +241,26 @@ class MainActivity : ComponentActivity() {
                                 AddProductionScreen(onBack = { navController.popBackStack() })
                             }
 
+                            composable(
+                                route     = "${Routes.EDIT_PRODUCTION}/{entryId}",
+                                arguments = listOf(
+                                    navArgument("entryId") { type = NavType.LongType }
+                                )
+                            ) { backStack ->
+                                val entryId = backStack.arguments!!.getLong("entryId")
+                                AddProductionScreen(
+                                    entryId = entryId,
+                                    onBack  = { navController.popBackStack() }
+                                )
+                            }
+
                             composable(Routes.PRODUCTION_HISTORY) {
-                                ProductionHistoryScreen(onBack = { navController.popBackStack() })
+                                ProductionHistoryScreen(
+                                    onBack       = { navController.popBackStack() },
+                                    onEditEntry  = { id ->
+                                        navController.navigate(Routes.editProduction(id))
+                                    }
+                                )
                             }
 
                             // ── Sales ────────────────────────────────────────────────────────────

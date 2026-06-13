@@ -1,8 +1,11 @@
 package com.kulhad.manager.data.repository
 
+import com.kulhad.manager.data.local.dao.AttendanceDao
 import com.kulhad.manager.data.local.dao.ExpenseDao
 import com.kulhad.manager.data.local.dao.ProductionEntryDao
 import com.kulhad.manager.data.local.dao.SaleDao
+import com.kulhad.manager.data.local.dao.WorkerDao
+import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.domain.model.ProfitabilitySummary
 import javax.inject.Inject
@@ -11,49 +14,77 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
 /**
- * Reactive P&L calculations using ONLY existing data — no new tables or migrations.
+ * Reactive P&L calculations for the Dashboard.
  *
- * All three source DAOs and their queries already exist; this repository simply
- * combines them into a single [ProfitabilitySummary] Flow.
+ * ── Labour cost ──────────────────────────────────────────────────────────────
+ * Uses worker-type branching — identical business logic to
+ * [ReportRepository.labourCostsForRange] — so Dashboard and P&L Report
+ * always agree on labour cost for the same date range:
  *
- * ── Sources ─────────────────────────────────────────────────────────────────────
- *  Revenue    → [SaleDao.observeTotalInRange]       — SUM(sales.total_amount)
- *  LabourCost → [ProductionEntryDao.observeLaborCostInRange]
- *               → SUM((qty_produced − defective_qty) × rate_snapshot)
- *               Historically accurate: rate_snapshot is stamped at entry time
- *               so the figure never changes when future rates are edited.
- *  Expenses   → [ExpenseDao.observeTotalInRange]    — SUM(expenses.amount)
+ *   PIECE workers  → SUM((qty − defective) × rate_snapshot)   [production_entries]
+ *   SALARY workers → present_days × daily_rate                 [attendance × workers]
  *
- * ── Derived ─────────────────────────────────────────────────────────────────────
- *  Gross Profit = Revenue − LabourCost
- *  Net Profit   = Revenue − LabourCost − Expenses
+ * Production entries submitted by SALARY workers are intentionally excluded
+ * from labour cost — they count for stock and production analytics only.
+ *
+ * ── Sources ──────────────────────────────────────────────────────────────────
+ *   Revenue    → [SaleDao.observeTotalInRange]
+ *   LabourCost → per-worker type branch (see above)
+ *   Expenses   → [ExpenseDao.observeTotalInRange]
  */
 @Singleton
 class ProfitabilityRepository @Inject constructor(
     private val saleDao:          SaleDao,
     private val productionDao:    ProductionEntryDao,
-    private val expenseDao:       ExpenseDao
+    private val expenseDao:       ExpenseDao,
+    private val workerDao:        WorkerDao,
+    private val attendanceDao:    AttendanceDao
 ) {
 
     /**
-     * P&L summary for a caller-specified date range.
+     * Reactive labour cost for [startDate]..[endDate], branched by worker type.
+     *
+     * Emits whenever workers, production entries, or attendance rows change in
+     * the range — any of the three source tables propagate automatically.
+     */
+    private fun observeLabourCost(startDate: Long, endDate: Long): Flow<Int> =
+        combine(
+            workerDao.observeAll(),
+            productionDao.observeEarningsByWorkerInRange(startDate, endDate),
+            attendanceDao.observeMonthlyWorkerCounts(startDate, endDate)
+        ) { workers, productionEarnings, attendanceCounts ->
+            val earningsMap = productionEarnings.associate { it.workerId to it.earnings }
+            val daysMap     = attendanceCounts.associate { it.workerId to it.presentCount }
+            var piece  = 0
+            var salary = 0
+            workers.forEach { w ->
+                val type = runCatching { WorkerType.valueOf(w.currentType) }
+                    .getOrDefault(WorkerType.PIECE)
+                if (type == WorkerType.PIECE) {
+                    piece  += (earningsMap[w.id] ?: 0.0).toInt()
+                } else {
+                    // SALARY worker — attendance × rate only, production entries ignored
+                    salary += (daysMap[w.id] ?: 0) * w.dailyRate
+                }
+            }
+            piece + salary
+        }
+
+    /**
+     * Full P&L summary for a caller-specified date range.
      *
      * [startDate] and [endDate] must be epoch-millis aligned to start-of-day /
      * end-of-day respectively (use [DateUtils.startOfDay] / [DateUtils.endOfDay]).
-     * The three underlying DAO flows all use `BETWEEN :from AND :to`, so the range
-     * is fully inclusive.
      *
-     * Emits a new [ProfitabilitySummary] whenever any of the three source tables
-     * changes — inserts, updates, or deletes in sales, production_entries, or
-     * expenses all propagate automatically.
+     * Emits a new [ProfitabilitySummary] whenever any of sales, production_entries,
+     * attendance, workers, or expenses changes within the range.
      */
     fun observeRange(startDate: Long, endDate: Long): Flow<ProfitabilitySummary> =
         combine(
             saleDao.observeTotalInRange(startDate, endDate),
-            productionDao.observeLaborCostInRange(startDate, endDate),
-            expenseDao.observeTotalInRange(startDate, endDate)
-        ) { revenue, labourCostDouble, expenses ->
-            val labourCost  = labourCostDouble.toInt()
+            expenseDao.observeTotalInRange(startDate, endDate),
+            observeLabourCost(startDate, endDate)
+        ) { revenue, expenses, labourCost ->
             val grossProfit = revenue - labourCost
             val netProfit   = grossProfit - expenses
             ProfitabilitySummary(
@@ -67,23 +98,12 @@ class ProfitabilityRepository @Inject constructor(
 
     /**
      * P&L summary for the current calendar day (device timezone).
-     *
-     * Range: [DateUtils.todayStart()] .. [DateUtils.todayEnd()].
-     *
-     * Note: both bounds are recomputed each time a subscriber collects this Flow.
-     * This means if the app runs past midnight without being killed, the first
-     * emission after midnight will already use the new day's bounds.  If tighter
-     * midnight-boundary behaviour is required in future, wrap in [flatMapLatest]
-     * on a tick flow — but for the current Dashboard use case this is sufficient.
      */
     fun observeToday(): Flow<ProfitabilitySummary> =
         observeRange(DateUtils.todayStart(), DateUtils.todayEnd())
 
     /**
      * P&L summary for the current calendar month (device timezone).
-     *
-     * Range: first millisecond of the current month .. last millisecond of the
-     * current month.  Same midnight caveat as [observeToday] applies.
      */
     fun observeCurrentMonth(): Flow<ProfitabilitySummary> {
         val now = System.currentTimeMillis()

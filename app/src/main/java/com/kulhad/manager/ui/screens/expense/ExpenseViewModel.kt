@@ -12,12 +12,24 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+data class ExpenseMonthData(
+    val monthAnchor:   Long,
+    val total:         Int,
+    val categoryCount: Int,
+    val entryCount:    Int,
+    val breakdown:     List<Pair<String, Int>>,
+    val entries:       List<Expense>
+)
 
 data class ExpenseTabData(
     val totalThisMonth: Int,
@@ -140,4 +152,58 @@ class ExpenseViewModel @Inject constructor(
             } catch (_: Exception) {}
         }
     }
+
+    // ── Month-based expense history ──────────────────────────────────────────
+
+    private val _historyMonthAnchor = MutableStateFlow(
+        DateUtils.startOfMonth(System.currentTimeMillis())
+    )
+    val historyMonthAnchor: StateFlow<Long> = _historyMonthAnchor.asStateFlow()
+
+    /** True when the displayed month is the current calendar month — blocks Next navigation. */
+    val historyAtCurrentMonth: StateFlow<Boolean> = _historyMonthAnchor
+        .map { it >= DateUtils.startOfMonth(System.currentTimeMillis()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun historyPrevMonth() {
+        _historyMonthAnchor.value = DateUtils.addMonths(_historyMonthAnchor.value, -1)
+    }
+
+    fun historyNextMonth() {
+        val candidate = DateUtils.addMonths(_historyMonthAnchor.value, 1)
+        if (candidate <= DateUtils.startOfMonth(System.currentTimeMillis())) {
+            _historyMonthAnchor.value = candidate
+        }
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val historyMonthData: StateFlow<ExpenseMonthData> = _historyMonthAnchor
+        .flatMapLatest { anchor ->
+            val from = DateUtils.startOfMonth(anchor)
+            val to   = DateUtils.endOfMonth(anchor)
+            combine(
+                expenseRepository.observeInRange(from, to),
+                expenseRepository.observeBreakdownInRange(from, to)
+            ) { entries, breakdown ->
+                ExpenseMonthData(
+                    monthAnchor   = anchor,
+                    total         = entries.sumOf { it.amount },
+                    categoryCount = breakdown.count { it.second > 0 },
+                    entryCount    = entries.size,
+                    breakdown     = breakdown.filter { it.second > 0 },
+                    entries       = entries
+                )
+            }
+        }
+        .stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5_000),
+            ExpenseMonthData(
+                monthAnchor   = DateUtils.startOfMonth(System.currentTimeMillis()),
+                total         = 0,
+                categoryCount = 0,
+                entryCount    = 0,
+                breakdown     = emptyList(),
+                entries       = emptyList()
+            )
+        )
 }
