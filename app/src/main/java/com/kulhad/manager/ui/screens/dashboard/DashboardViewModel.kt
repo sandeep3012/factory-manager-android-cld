@@ -2,7 +2,6 @@ package com.kulhad.manager.ui.screens.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kulhad.manager.data.repository.ExpenseRepository
 import com.kulhad.manager.data.repository.ProfitabilityRepository
 import com.kulhad.manager.data.repository.ProductionRepository
 import com.kulhad.manager.data.repository.SaleRepository
@@ -33,10 +32,14 @@ data class DashboardData(
     val totalCostMonth: Int,
     val production7Days: List<Int>,
     val production7DayLabels: List<String>,
-    // ── Today P&L (Phase 1 — data only, UI display in Phase 2) ───────────────
+    // ── Today P&L ────────────────────────────────────────────────────────────
     /** Revenue collected today = SUM(sales.total_amount) for today's date range. */
     val todayRevenue: Int,
-    /** Labour cost today = SUM((net_qty) × rate_snapshot) for today's production entries. */
+    /**
+     * Labour cost today — worker-type branching:
+     *   PIECE workers  → SUM((qty − defective) × rate_snapshot)
+     *   SALARY workers → present_days × daily_rate
+     */
     val todayLabourCost: Int,
     /** Total expenses today = SUM(expenses.amount) for today's date range. */
     val todayExpenses: Int,
@@ -52,80 +55,73 @@ sealed class DashboardUiState {
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val workerRepository: WorkerRepository,
-    private val productionRepository: ProductionRepository,
-    private val saleRepository: SaleRepository,
-    private val stockRepository: StockRepository,
-    private val expenseRepository: ExpenseRepository,
+    private val workerRepository:        WorkerRepository,
+    private val productionRepository:    ProductionRepository,
+    private val saleRepository:          SaleRepository,
+    private val stockRepository:         StockRepository,
     private val profitabilityRepository: ProfitabilityRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager:          SessionManager
 ) : ViewModel() {
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DashboardUiState> = run {
-        val now = System.currentTimeMillis()
+        val now      = System.currentTimeMillis()
         val monthFrom = DateUtils.startOfMonth(now)
-        val monthTo = DateUtils.endOfMonth(now)
-        val starts = DateUtils.last7DayStarts()
-        val from7 = starts.first()
-        val to7 = DateUtils.endOfDay(starts.last())
+        val monthTo   = DateUtils.endOfMonth(now)
+        val starts    = DateUtils.last7DayStarts()
+        val from7     = starts.first()
+        val to7       = DateUtils.endOfDay(starts.last())
 
         // ── Level 1: today values (5 sources) ──────────────────────────────────
-        //
-        // profitabilityRepository.observeToday() replaces the former standalone
-        // saleRepository.observeSalesToday() call and adds labourCost/expenses/
-        // netProfit in the same combine slot — no extra slots consumed.
         combine(
             productionRepository.observeNetQtyToday(),   // [0] piecesToday
-            profitabilityRepository.observeToday(),      // [1] ProfitabilitySummary
+            profitabilityRepository.observeToday(),      // [1] ProfitabilitySummary (today)
             workerRepository.observePresentCountToday(), // [2] present
             workerRepository.observeActiveCount(),       // [3] total workers
             stockRepository.observeAlertCount()          // [4] alerts
         ) { piecesToday, todayPnL, present, total, alert ->
             arrayOf(piecesToday, todayPnL, present, total, alert)
         }.flatMapLatest { todayArr ->
-            // ── Level 2: month / 7-day values (5 sources) ────────────────────
+            // ── Level 2: month P&L + 7-day chart (3 sources) ─────────────────
+            // profitabilityRepository.observeRange() uses worker-type branching so
+            // Dashboard labour cost == P&L Report labour cost for the same month.
             combine(
-                saleRepository.observeTotalInRange(monthFrom, monthTo),
-                productionRepository.observeLaborCostInRange(monthFrom, monthTo),
-                expenseRepository.observeTotalInRange(monthFrom, monthTo),
+                profitabilityRepository.observeRange(monthFrom, monthTo),
                 productionRepository.observeDailyInRange(from7, to7),
                 flowOf(todayArr)
-            ) { revenue, labor, expenses, daily, today ->
-                val byDay     = daily.associate { it.day to it.qty }
-                val series    = starts.map { byDay[it] ?: 0 }
-                val labels    = DateUtils.last7DayLabels()
-                val totalCost = labor.toInt() + expenses
+            ) { monthPnL, daily, today ->
+                val byDay  = daily.associate { it.day to it.qty }
+                val series = starts.map { byDay[it] ?: 0 }
+                val labels = DateUtils.last7DayLabels()
 
-                val todayPnL  = today[1] as ProfitabilitySummary
+                val todayPnL = today[1] as ProfitabilitySummary
 
                 DashboardUiState.Success(
                     DashboardData(
-                        greeting            = DateUtils.greeting(),
-                        userName            = sessionManager.currentUserName,
-                        piecesToday         = today[0] as Int,
-                        // salesToday kept as-is (backward compat) — equals todayRevenue
-                        salesToday          = todayPnL.revenue,
-                        workersPresent      = today[2] as Int,
-                        workersTotal        = today[3] as Int,
-                        stockAlertCount     = today[4] as Int,
-                        netProfitMonth      = revenue - totalCost,
-                        totalRevenueMonth   = revenue,
-                        totalCostMonth      = totalCost,
-                        production7Days     = series,
+                        greeting             = DateUtils.greeting(),
+                        userName             = sessionManager.currentUserName,
+                        piecesToday          = today[0] as Int,
+                        // salesToday == todayRevenue (kept for backward compat)
+                        salesToday           = todayPnL.revenue,
+                        workersPresent       = today[2] as Int,
+                        workersTotal         = today[3] as Int,
+                        stockAlertCount      = today[4] as Int,
+                        netProfitMonth       = monthPnL.netProfit,
+                        totalRevenueMonth    = monthPnL.revenue,
+                        totalCostMonth       = monthPnL.labourCost + monthPnL.expenses,
+                        production7Days      = series,
                         production7DayLabels = labels,
-                        // ── Today P&L breakdown ───────────────────────────────
-                        todayRevenue        = todayPnL.revenue,
-                        todayLabourCost     = todayPnL.labourCost,
-                        todayExpenses       = todayPnL.expenses,
-                        todayNetProfit      = todayPnL.netProfit
+                        todayRevenue         = todayPnL.revenue,
+                        todayLabourCost      = todayPnL.labourCost,
+                        todayExpenses        = todayPnL.expenses,
+                        todayNetProfit       = todayPnL.netProfit
                     )
                 )
             }
         }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = DashboardUiState.Loading
+            scope          = viewModelScope,
+            started        = SharingStarted.WhileSubscribed(5_000),
+            initialValue   = DashboardUiState.Loading
         )
     }
 }

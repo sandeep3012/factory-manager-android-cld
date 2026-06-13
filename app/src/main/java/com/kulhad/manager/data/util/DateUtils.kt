@@ -11,6 +11,8 @@ object DateUtils {
         get() = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
     private val monthFmt: SimpleDateFormat
         get() = SimpleDateFormat("MMM yyyy", Locale.getDefault())
+    private val monthFullFmt: SimpleDateFormat
+        get() = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
     private val dayShortFmt: SimpleDateFormat
         get() = SimpleDateFormat("dd MMM", Locale.getDefault())
     private val timeFmt: SimpleDateFormat
@@ -77,6 +79,7 @@ object DateUtils {
     fun formatDay(ts: Long): String = dayFmt.format(Date(ts))
     fun formatDayShort(ts: Long): String = dayShortFmt.format(Date(ts))
     fun formatMonth(ts: Long): String = monthFmt.format(Date(ts))
+    fun formatMonthFull(ts: Long): String = monthFullFmt.format(Date(ts))
     fun formatTime(ts: Long): String = timeFmt.format(Date(ts))
 
     /**

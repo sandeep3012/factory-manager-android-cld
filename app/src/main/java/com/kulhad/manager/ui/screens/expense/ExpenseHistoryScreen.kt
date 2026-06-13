@@ -1,5 +1,8 @@
 package com.kulhad.manager.ui.screens.expense
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,13 +10,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,47 +49,50 @@ import com.kulhad.manager.domain.model.Expense
 import com.kulhad.manager.domain.model.ExpenseType
 import com.kulhad.manager.ui.components.AuditInfoCard
 import com.kulhad.manager.ui.components.BadgeType
-import com.kulhad.manager.ui.components.KpiStrip
 import com.kulhad.manager.ui.components.KulhadButton
 import com.kulhad.manager.ui.components.KulhadTextField
 import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SectionHeader
 import com.kulhad.manager.ui.components.StatusBadge
-import com.kulhad.manager.ui.components.WorkingDateChip
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.OverlayWhite07
-import com.kulhad.manager.ui.theme.OverlayWhite15
 import com.kulhad.manager.ui.theme.PrimaryBlue
 import com.kulhad.manager.ui.theme.PrimaryBlueDark
 import com.kulhad.manager.ui.theme.PrimaryBlueLight
+import com.kulhad.manager.ui.theme.Success
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextPrimary
 import com.kulhad.manager.ui.theme.TextSecondary
+import com.kulhad.manager.ui.theme.TextTertiary
 import com.kulhad.manager.ui.theme.WarningAmber
 
 // ── Expense History Screen ────────────────────────────────────────────────────
 
 /**
- * Date-based view of all expense rows for the globally selected working date.
- * Reacts automatically when the working date changes — no manual refresh.
+ * Month-wise expense summary screen.
  *
- * Driven by [ExpenseViewModel.historyDayExpenses] which uses [flatMapLatest] over
- * [WorkingDateManager.currentWorkingDate] — stale rows from a previously viewed date
- * cannot bleed through on date changes.
+ * Shows the selected calendar month with:
+ *  - Month navigation arrows (future months blocked)
+ *  - Total expenses summary card (total, category count, entry count)
+ *  - Category breakdown sorted by amount descending
+ *  - Expandable detail list (all entries for the month, date descending)
+ *  - Tap-to-edit via [ExpenseEditDialog] (preserved from previous implementation)
  *
- * Tapping a row opens [ExpenseEditDialog] which allows editing amount, remark, and
- * expense type. Date is shown as non-editable context.
+ * Driven by [ExpenseViewModel.historyMonthData] which uses [flatMapLatest] over
+ * [ExpenseViewModel.historyMonthAnchor] — switching months cancels the previous
+ * DB subscription immediately.
  */
 @Composable
 fun ExpenseHistoryScreen(
     onBack: () -> Unit,
     viewModel: ExpenseViewModel = hiltViewModel()
 ) {
-    val entries     by viewModel.historyDayExpenses.collectAsStateWithLifecycle()
-    val workingDate by viewModel.workingDate.collectAsStateWithLifecycle()
-    val allTypes    by viewModel.expenseTypes.collectAsStateWithLifecycle()
+    val monthData      by viewModel.historyMonthData.collectAsStateWithLifecycle()
+    val atCurrentMonth by viewModel.historyAtCurrentMonth.collectAsStateWithLifecycle()
+    val allTypes       by viewModel.expenseTypes.collectAsStateWithLifecycle()
 
-    var selectedExpense by remember { mutableStateOf<Expense?>(null) }
+    var selectedExpense  by remember { mutableStateOf<Expense?>(null) }
+    var detailsExpanded  by remember { mutableStateOf(false) }
 
     // ── Edit dialog ────────────────────────────────────────────────────────
     selectedExpense?.let { expense ->
@@ -98,92 +112,128 @@ fun ExpenseHistoryScreen(
         )
     }
 
-    // ── Derived KPIs ──────────────────────────────────────────────────────
-    val total = entries.sumOf { it.amount }
-
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
-        KulhadTopBar(title = "Expense History", onBack = onBack)
+        KulhadTopBar(
+            title   = "Expense History",
+            onBack  = onBack,
+            actions = {
+                // ← Previous month
+                Icon(
+                    imageVector        = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = "Previous month",
+                    tint               = TextPrimary,
+                    modifier           = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { viewModel.historyPrevMonth() }
+                )
+                // Month label
+                Text(
+                    text       = DateUtils.formatMonthFull(monthData.monthAnchor),
+                    color      = TextPrimary,
+                    fontSize   = 14.sp,
+                    fontWeight = FontWeight.W600,
+                    textAlign  = TextAlign.Center,
+                    modifier   = Modifier.padding(horizontal = 6.dp)
+                )
+                // → Next month (disabled when at current month)
+                Icon(
+                    imageVector        = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Next month",
+                    tint               = if (atCurrentMonth) TextTertiary else TextPrimary,
+                    modifier           = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable(enabled = !atCurrentMonth) { viewModel.historyNextMonth() }
+                )
+            }
+        )
 
         LazyColumn(
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+            contentPadding      = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Working date chip — shared singleton, synced across all screens
-            item {
-                WorkingDateChip(
-                    selectedDate   = workingDate,
-                    onDateSelected = { viewModel.setWorkingDate(it) }
-                )
-            }
 
-            // KPI strip
+            // ── Summary card ──────────────────────────────────────────────
             item {
-                KpiStrip(
-                    items = listOf(
-                        Triple(entries.size.toString(),        "Entries",    TextPrimary),
-                        Triple(Money.formatRupees(total.toLong()), "Total",  WarningAmber)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(SurfaceCard)
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text      = "Total Expenses",
+                        color     = TextSecondary,
+                        fontSize  = 13.sp,
+                        letterSpacing = 0.4.sp
                     )
-                )
+                    Text(
+                        text       = Money.formatRupees(monthData.total.toLong()),
+                        color      = WarningAmber,
+                        fontSize   = 28.sp,
+                        fontWeight = FontWeight.W700
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        SummaryPill(label = "Categories", value = monthData.categoryCount.toString())
+                        SummaryPill(label = "Entries",    value = monthData.entryCount.toString())
+                    }
+                }
             }
 
-            // ── Entry list ────────────────────────────────────────────────
-            if (entries.isEmpty()) {
+            // ── Empty state ───────────────────────────────────────────────
+            if (monthData.entries.isEmpty()) {
                 item {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 32.dp),
-                        contentAlignment = Alignment.Center
+                        modifier            = Modifier.fillMaxWidth().padding(top = 40.dp),
+                        contentAlignment    = Alignment.Center
                     ) {
                         Text(
-                            text     = "No expenses for this date",
+                            text     = "No expenses for ${DateUtils.formatMonthFull(monthData.monthAnchor)}",
                             color    = TextSecondary,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             } else {
-                item { SectionHeader(text = "Entries — ${entries.size}") }
+
+                // ── Category breakdown ────────────────────────────────────
+                item { SectionHeader(text = "By Category") }
                 item {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
                             .background(SurfaceCard)
-                            .padding(horizontal = 12.dp)
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
                     ) {
-                        entries.forEachIndexed { idx, expense ->
+                        monthData.breakdown.forEachIndexed { idx, (category, amount) ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { selectedExpense = expense }
-                                    .padding(vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    .padding(vertical = 13.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment     = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text       = Money.formatRupees(expense.amount.toLong()),
-                                        color      = TextPrimary,
-                                        fontSize   = 15.sp,
-                                        fontWeight = FontWeight.W600
-                                    )
-                                    if (expense.remark.isNotBlank()) {
-                                        Text(
-                                            text     = expense.remark,
-                                            color    = TextSecondary,
-                                            fontSize = 12.sp
-                                        )
-                                    }
-                                    Text(
-                                        text     = DateUtils.formatTime(expense.date),
-                                        color    = TextSecondary,
-                                        fontSize = 11.sp
-                                    )
-                                }
-                                StatusBadge(expense.typeName, BadgeType.PURPLE)
+                                Text(
+                                    text       = category,
+                                    color      = TextPrimary,
+                                    fontSize   = 15.sp,
+                                    fontWeight = FontWeight.W500,
+                                    modifier   = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text       = Money.formatRupees(amount.toLong()),
+                                    color      = WarningAmber,
+                                    fontSize   = 15.sp,
+                                    fontWeight = FontWeight.W600
+                                )
                             }
-                            if (idx < entries.lastIndex) {
+                            if (idx < monthData.breakdown.lastIndex) {
                                 Box(
                                     Modifier
                                         .fillMaxWidth()
@@ -194,8 +244,121 @@ fun ExpenseHistoryScreen(
                         }
                     }
                 }
+
+                // ── Expandable detail entries ─────────────────────────────
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(SurfaceCard)
+                            .clickable { detailsExpanded = !detailsExpanded }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text       = if (detailsExpanded) "Hide Details" else "View Details",
+                            color      = PrimaryBlue,
+                            fontSize   = 14.sp,
+                            fontWeight = FontWeight.W600
+                        )
+                        Icon(
+                            imageVector        = if (detailsExpanded)
+                                Icons.Default.KeyboardArrowUp
+                            else
+                                Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint               = PrimaryBlue,
+                            modifier           = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = detailsExpanded,
+                        enter   = expandVertically(),
+                        exit    = shrinkVertically()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(SurfaceCard)
+                                .padding(horizontal = 12.dp)
+                        ) {
+                            monthData.entries.forEachIndexed { idx, expense ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { selectedExpense = expense }
+                                        .padding(vertical = 11.dp),
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // Date column
+                                    Text(
+                                        text     = DateUtils.formatDayShort(expense.date),
+                                        color    = TextSecondary,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(end = 2.dp)
+                                    )
+                                    // Category badge + remark
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        StatusBadge(expense.typeName, BadgeType.PURPLE)
+                                        if (expense.remark.isNotBlank()) {
+                                            Text(
+                                                text     = expense.remark,
+                                                color    = TextSecondary,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    }
+                                    // Amount
+                                    Text(
+                                        text       = Money.formatRupees(expense.amount.toLong()),
+                                        color      = TextPrimary,
+                                        fontSize   = 14.sp,
+                                        fontWeight = FontWeight.W600
+                                    )
+                                }
+                                if (idx < monthData.entries.lastIndex) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(0.5.dp)
+                                            .background(OverlayWhite07)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+// ── Private helpers ───────────────────────────────────────────────────────────
+
+@Composable
+private fun SummaryPill(label: String, value: String) {
+    Row(
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text       = value,
+            color      = TextPrimary,
+            fontSize   = 14.sp,
+            fontWeight = FontWeight.W600
+        )
+        Text(
+            text     = label,
+            color    = TextSecondary,
+            fontSize = 13.sp
+        )
     }
 }
 
@@ -206,12 +369,6 @@ fun ExpenseHistoryScreen(
  *
  * Non-editable context (date) is shown as static text.
  * Editable fields: amount, remark, and expense type (category chips).
- *
- * [AuditInfoCard] shows CREATED and LAST UPDATED sections.
- * Since expenses are editable, LAST UPDATED will show after the first save.
- *
- * Save is disabled until amount is a positive integer and a type is selected.
- * Dismiss: tap-outside, hardware back, or the "Close" button.
  */
 @Composable
 private fun ExpenseEditDialog(
@@ -281,16 +438,12 @@ private fun ExpenseEditDialog(
                                             .padding(vertical = 8.dp, horizontal = 6.dp)
                                     )
                                 }
-                                // Pad remaining slots
-                                repeat(3 - rowTypes.size) {
-                                    Box(modifier = Modifier.weight(1f))
-                                }
+                                repeat(3 - rowTypes.size) { Box(modifier = Modifier.weight(1f)) }
                             }
                         }
                     }
                 }
 
-                // ── Editable fields ───────────────────────────────────────
                 KulhadTextField(
                     label         = "Amount (₹)",
                     value         = amount,
@@ -304,7 +457,6 @@ private fun ExpenseEditDialog(
                     onValueChange = { remark = it }
                 )
 
-                // ── Audit trail ───────────────────────────────────────────
                 AuditInfoCard(audit = expense.audit.toDisplay())
             }
         },

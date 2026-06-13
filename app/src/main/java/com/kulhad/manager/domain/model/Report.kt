@@ -16,15 +16,20 @@ data class MonthSummary(
 data class ProfitLossReport(
     val periodLabel: String,
     val totalSales: Int,
-    val laborCost: Int,
-    /** Revenue minus labour cost only (expenses not yet deducted). */
+    /** Gross earnings for PIECE workers only: SUM(earningsForWorkerInRange). */
+    val pieceLabourCost: Int,
+    /** Gross earnings for SALARY workers only: SUM(daysPresent × dailyRate). */
+    val salaryLabourCost: Int,
+    /** Total labour cost = pieceLabourCost + salaryLabourCost. */
+    val totalLabourCost: Int,
+    /** Revenue minus total labour cost only (expenses not yet deducted). */
     val grossProfit: Int,
     val expenseByType: List<Pair<String, Int>>, // typeName -> amount
     val totalExpenses: Int,
     val netProfit: Int,
     // ── Previous month (for comparison card) ──────────────────────────────
     val previousRevenue: Int,
-    val previousLaborCost: Int,
+    val previousTotalLabourCost: Int,
     val previousExpenses: Int,
     val previousProfit: Int,
     val percentChange: Double,

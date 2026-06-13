@@ -15,11 +15,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -40,16 +41,11 @@ class ProductionViewModel @Inject constructor(
 ) : ViewModel() {
 
     // ── Global working date ──────────────────────────────────────────────────
-    /**
-     * The process-scoped working date from [WorkingDateManager].
-     * Delegates the same StateFlow — no state is duplicated.
-     * Production entry saves use [workingDateManager.currentEpochMilli] internally.
-     */
     val workingDate: StateFlow<LocalDate> = workingDateManager.currentWorkingDate
 
-    /** Forwards date selection to [WorkingDateManager]; future dates are silently rejected. */
     fun setWorkingDate(date: LocalDate) = workingDateManager.setWorkingDate(date)
 
+    /** Active workers only — shown in the Add Production picker. */
     val activeWorkers: StateFlow<List<Worker>> = workerRepository.observeActiveWorkers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -86,16 +82,6 @@ class ProductionViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Production entries for the currently selected [workingDate], newest first.
-     *
-     * Re-queries whenever the global working date changes via [WorkingDateManager].
-     * Uses [flatMapLatest] so the previous DB subscription is cancelled on every date
-     * change — stale data from a previous day cannot leak through.
-     *
-     * Powered by [ProductionRepository.observeEntriesForDay] which normalises the date
-     * to start-of-day / end-of-day bounds internally.
-     */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val historyDayEntries: StateFlow<List<ProductionEntry>> =
         workingDateManager.currentWorkingDate
@@ -104,6 +90,26 @@ class ProductionViewModel @Inject constructor(
                 productionRepository.observeEntriesForDay(epochMilli)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // ── Edit entry state ─────────────────────────────────────────────────────
+
+    private val _entryForEdit = MutableStateFlow<ProductionEntry?>(null)
+    /** Non-null when the edit screen is active and the entry has been loaded. */
+    val entryForEdit: StateFlow<ProductionEntry?> = _entryForEdit.asStateFlow()
+
+    /** Loads an existing entry by ID into [entryForEdit] for the edit form. */
+    fun loadEntryForEdit(entryId: Long) {
+        viewModelScope.launch {
+            _entryForEdit.value = productionRepository.findEntryById(entryId)
+        }
+    }
+
+    /** Clears the edit state — call when leaving the edit screen. */
+    fun clearEntryForEdit() {
+        _entryForEdit.value = null
+    }
+
+    // ── Write operations ─────────────────────────────────────────────────────
 
     suspend fun rateFor(productId: Long): Double = productionRepository.currentRate(productId)
 
@@ -117,14 +123,33 @@ class ProductionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val id = productionRepository.addEntry(
-                    workerId = workerId,
+                    workerId  = workerId,
                     productId = productId,
-                    quantity = quantity,
+                    quantity  = quantity,
                     defective = defective,
-                    date = workingDateManager.currentEpochMilli(),
-                    userId = sessionManager.currentUserId
+                    date      = workingDateManager.currentEpochMilli(),
+                    userId    = sessionManager.currentUserId
                 )
                 onDone(id)
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun updateEntry(
+        entryId:   Long,
+        quantity:  Int,
+        defective: Int,
+        onDone:    () -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                productionRepository.updateEntry(
+                    entryId   = entryId,
+                    quantity  = quantity,
+                    defective = defective,
+                    userId    = sessionManager.currentUserId
+                )
+                onDone()
             } catch (_: Exception) {}
         }
     }

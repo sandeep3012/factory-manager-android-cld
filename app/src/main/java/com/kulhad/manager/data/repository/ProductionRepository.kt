@@ -217,6 +217,98 @@ class ProductionRepository @Inject constructor(
         entryId
     }
 
+    /**
+     * Returns the enriched domain model for a single entry, or null if not found.
+     * Used to pre-populate the edit form.
+     */
+    suspend fun findEntryById(id: Long): ProductionEntry? {
+        val entity = productionDao.findById(id) ?: return null
+        val worker  = workerDao.findById(entity.workerId)
+        val product = productDao.findById(entity.productId)
+        return ProductionEntry(
+            id                = entity.id,
+            workerId          = entity.workerId,
+            workerName        = worker?.name ?: "Unknown",
+            productId         = entity.productId,
+            productSize       = product?.sizeMl ?: 0,
+            productLabel      = product?.let {
+                it.displayLabel.ifBlank { "${it.sizeMl}ml" }
+            } ?: "${entity.productId}",
+            quantityProduced  = entity.quantityProduced,
+            defectiveQuantity = entity.defectiveQuantity,
+            rateSnapshot      = entity.rateSnapshot,
+            date              = entity.date,
+            createdBy         = entity.createdBy,
+            createdAt         = entity.createdAt,
+            audit             = AuditInfo(
+                createdBy = entity.auditCreatedBy,
+                createdAt = entity.auditCreatedAt,
+                updatedBy = entity.auditUpdatedBy,
+                updatedAt = entity.auditUpdatedAt
+            )
+        )
+    }
+
+    /**
+     * Updates quantity fields on an existing production entry.
+     *
+     * Only [quantityProduced] and [defectiveQuantity] are changed.
+     * Worker, product, date, and rate_snapshot are preserved exactly as originally
+     * recorded — they are locked to maintain historical accuracy.
+     *
+     * Stock ledger: a delta correction row is appended when net qty changes
+     * (delta = newNet − oldNet). The original ledger row is never modified.
+     *
+     * Attendance: not touched — worker and date are unchanged, so no attendance
+     * side-effect is needed or desired.
+     */
+    suspend fun updateEntry(
+        entryId:   Long,
+        quantity:  Int,
+        defective: Int,
+        userId:    Long
+    ) = database.withTransaction {
+        require(quantity >= 0)            { "Quantity cannot be negative" }
+        require(defective in 0..quantity) { "Defective must be between 0 and quantity" }
+
+        val existing = productionDao.findById(entryId) ?: return@withTransaction
+        val now   = System.currentTimeMillis()
+        val audit = AuditUtils.updateAudit(
+            oldCreatedBy = existing.auditCreatedBy,
+            oldCreatedAt = existing.auditCreatedAt,
+            currentUser  = userSessionManager.currentUser.value
+        )
+
+        productionDao.update(
+            existing.copy(
+                quantityProduced  = quantity,
+                defectiveQuantity = defective,
+                auditUpdatedBy    = audit.updatedBy,
+                auditUpdatedAt    = audit.updatedAt
+                // workerId, productId, date, rateSnapshot — intentionally unchanged
+            )
+        )
+
+        // Append a stock-ledger correction row if net qty changed
+        val oldNet = existing.quantityProduced - existing.defectiveQuantity
+        val newNet = quantity - defective
+        val delta  = newNet - oldNet
+        if (delta != 0) {
+            stockLedgerDao.insert(
+                StockLedgerEntity(
+                    productId      = existing.productId,
+                    quantityChange = delta,
+                    changeType     = StockChangeType.PRODUCTION.name,
+                    remark         = "Entry correction",
+                    doneBy         = userId,
+                    timestamp      = now,
+                    auditCreatedBy = audit.createdBy,
+                    auditCreatedAt = audit.createdAt
+                )
+            )
+        }
+    }
+
     fun observeAllEntries(): Flow<List<ProductionEntry>> = combineEntries(productionDao.observeAll())
 
     fun observeEntriesInRange(from: Long, to: Long): Flow<List<ProductionEntry>> =

@@ -47,7 +47,6 @@ import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.ErrorRed
 import com.kulhad.manager.ui.theme.InfoBlue
 import com.kulhad.manager.ui.theme.OverlayWhite07
-import com.kulhad.manager.ui.theme.OverlayWhite15
 import com.kulhad.manager.ui.theme.Success
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextPrimary
@@ -70,18 +69,20 @@ fun ProfitLossReportScreen(
     LaunchedEffect(month) { viewModel.loadProfitLoss() }
 
     // ── Resolved values (default to 0 while loading) ──────────────────────
-    val revenue     = report?.totalSales?.toLong()     ?: 0L
-    val labourCost  = report?.laborCost?.toLong()      ?: 0L
-    val expenses    = report?.totalExpenses?.toLong()  ?: 0L
-    val grossProfit = report?.grossProfit?.toLong()    ?: 0L
-    val net         = report?.netProfit?.toLong()      ?: 0L
-    val pctChange   = report?.percentChange            ?: 0.0
-    val expenseByType = report?.expenseByType.orEmpty()
-    val trendFull   = report?.trendFull.orEmpty()
-    val prevRevenue = report?.previousRevenue?.toLong()   ?: 0L
-    val prevLabour  = report?.previousLaborCost?.toLong() ?: 0L
-    val prevExpenses = report?.previousExpenses?.toLong() ?: 0L
-    val prevProfit  = report?.previousProfit?.toLong()   ?: 0L
+    val revenue          = report?.totalSales?.toLong()          ?: 0L
+    val pieceLabourCost  = report?.pieceLabourCost?.toLong()     ?: 0L
+    val salaryLabourCost = report?.salaryLabourCost?.toLong()    ?: 0L
+    val labourCost       = report?.totalLabourCost?.toLong()     ?: 0L
+    val expenses         = report?.totalExpenses?.toLong()       ?: 0L
+    val grossProfit      = report?.grossProfit?.toLong()         ?: 0L
+    val net              = report?.netProfit?.toLong()           ?: 0L
+    val pctChange        = report?.percentChange                 ?: 0.0
+    val expenseByType    = report?.expenseByType.orEmpty()
+    val trendFull        = report?.trendFull.orEmpty()
+    val prevRevenue      = report?.previousRevenue?.toLong()          ?: 0L
+    val prevLabour       = report?.previousTotalLabourCost?.toLong()  ?: 0L
+    val prevExpenses     = report?.previousExpenses?.toLong()         ?: 0L
+    val prevProfit       = report?.previousProfit?.toLong()           ?: 0L
 
     val isProfit = net >= 0
     val netColor = if (isProfit) Success else ErrorRed
@@ -144,13 +145,14 @@ fun ProfitLossReportScreen(
             item { SectionHeader(text = "Breakdown") }
             item {
                 BreakdownCard(
-                    revenue     = revenue,
-                    labourCost  = labourCost,
-                    expenses    = expenses,
-                    grossProfit = grossProfit,
-                    net         = net,
-                    isProfit    = isProfit,
-                    netColor    = netColor
+                    revenue          = revenue,
+                    pieceLabourCost  = pieceLabourCost,
+                    salaryLabourCost = salaryLabourCost,
+                    totalLabourCost  = labourCost,
+                    expenses         = expenses,
+                    net              = net,
+                    isProfit         = isProfit,
+                    netColor         = netColor
                 )
             }
 
@@ -395,9 +397,10 @@ private fun LegendDot(color: Color, label: String) {
 @Composable
 private fun BreakdownCard(
     revenue: Long,
-    labourCost: Long,
+    pieceLabourCost: Long,
+    salaryLabourCost: Long,
+    totalLabourCost: Long,
     expenses: Long,
-    grossProfit: Long,
     net: Long,
     isProfit: Boolean,
     netColor: Color
@@ -415,9 +418,26 @@ private fun BreakdownCard(
             valueColor  = Success,
             showDivider = true
         )
+        // Labour sub-items (indented, muted label)
         ReportRow(
-            label       = "Labour Cost",
-            value       = "−${Money.formatRupees(labourCost)}",
+            label       = "Piece Labour",
+            value       = "−${Money.formatRupees(pieceLabourCost)}",
+            labelColor  = TextTertiary,
+            valueColor  = WarningAmber,
+            showDivider = false,
+            modifier    = Modifier.padding(start = 12.dp)
+        )
+        ReportRow(
+            label       = "Salary Labour",
+            value       = "−${Money.formatRupees(salaryLabourCost)}",
+            labelColor  = TextTertiary,
+            valueColor  = WarningAmber,
+            showDivider = true,
+            modifier    = Modifier.padding(start = 12.dp)
+        )
+        ReportRow(
+            label       = "Total Labour Cost",
+            value       = "−${Money.formatRupees(totalLabourCost)}",
             valueColor  = WarningAmber,
             showDivider = true
         )
@@ -425,19 +445,6 @@ private fun BreakdownCard(
             label       = "Expenses",
             value       = "−${Money.formatRupees(expenses)}",
             valueColor  = ErrorRed,
-            showDivider = true
-        )
-        // Gross profit divider accent
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(0.5.dp)
-                .background(OverlayWhite15)
-        )
-        ReportRow(
-            label       = "Gross Profit",
-            value       = Money.formatRupees(grossProfit),
-            valueColor  = if (grossProfit >= 0) Success else ErrorRed,
             showDivider = true
         )
         ReportRow(
