@@ -113,14 +113,14 @@ class SalesViewModel @Inject constructor(
     fun clearSaleError() { _saleError.value = null }
 
     fun createSale(
-        customerName: String,
+        customerId: Long,
         items: List<SaleItemDraft>,
         onDone: (Long) -> Unit
     ) {
         viewModelScope.launch {
             try {
                 val id = saleRepository.createSale(
-                    customerName = customerName,
+                    customerId = customerId,
                     date = workingDateManager.currentEpochMilli(),
                     items = items,
                     userId = sessionManager.currentUserId
@@ -147,11 +147,12 @@ class SalesViewModel @Inject constructor(
         saleId: Long,
         amount: Int,
         remark: String,
+        mode: String = "CASH",
         onDone: () -> Unit
     ) {
         viewModelScope.launch {
             try {
-                saleRepository.addPayment(saleId, amount, workingDateManager.currentEpochMilli(), remark)
+                saleRepository.addPayment(saleId, amount, workingDateManager.currentEpochMilli(), remark, mode)
                 onDone()
             } catch (e: OverpaymentException) {
                 _paymentError.value = buildString {

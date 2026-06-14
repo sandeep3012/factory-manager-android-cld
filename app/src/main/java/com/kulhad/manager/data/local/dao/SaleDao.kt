@@ -38,10 +38,14 @@ interface SaleDao {
     fun observeDailySales(from: Long, to: Long): Flow<List<DailySalesAmount>>
 
     @Query(
-        "SELECT customer_name AS customer, IFNULL(SUM(total_amount), 0) AS amount " +
-            "FROM sales WHERE date BETWEEN :from AND :to GROUP BY customer_name ORDER BY amount DESC"
+        "SELECT c.name AS customer, IFNULL(SUM(s.total_amount), 0) AS amount " +
+            "FROM sales s INNER JOIN customers c ON c.id = s.customer_id " +
+            "WHERE s.date BETWEEN :from AND :to GROUP BY s.customer_id ORDER BY amount DESC"
     )
     fun observeCustomerTotals(from: Long, to: Long): Flow<List<CustomerTotal>>
+
+    @Query("SELECT * FROM sales WHERE customer_id = :customerId ORDER BY date DESC, id DESC")
+    fun observeForCustomer(customerId: Long): Flow<List<SaleEntity>>
 }
 
 data class DailySalesAmount(val day: Long, val amount: Int)

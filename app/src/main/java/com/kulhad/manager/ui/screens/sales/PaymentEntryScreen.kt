@@ -1,6 +1,7 @@
 package com.kulhad.manager.ui.screens.sales
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,6 +65,7 @@ fun PaymentEntryScreen(
     val workingDate  by viewModel.workingDate.collectAsStateWithLifecycle()
     var amount          by remember { mutableStateOf("") }
     var remark          by remember { mutableStateOf("") }
+    var paymentMode     by remember { mutableStateOf("CASH") }
     var selectedPayment by remember { mutableStateOf<Payment?>(null) }
 
     // ── Overpayment error dialog ─────────────────────────────────────────────
@@ -173,6 +175,26 @@ fun PaymentEntryScreen(
                     keyboardType = KeyboardType.Number
                 )
             }
+            // Payment mode chips — CASH / UPI / BANK
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    listOf("CASH", "UPI", "BANK").forEach { mode ->
+                        val selected = mode == paymentMode
+                        Text(
+                            text = mode,
+                            color = if (selected) TextPrimary else PrimaryBlue,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.W600,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(if (selected) PrimaryBlue else androidx.compose.ui.graphics.Color.Transparent)
+                                .border(1.5.dp, PrimaryBlue, RoundedCornerShape(24.dp))
+                                .clickable { paymentMode = mode }
+                                .padding(horizontal = 20.dp, vertical = 10.dp)
+                        )
+                    }
+                }
+            }
             item {
                 KulhadTextField(
                     label = "Remark",
@@ -194,9 +216,10 @@ fun PaymentEntryScreen(
                     enabled = (amount.toIntOrNull() ?: 0) > 0,
                     onClick = {
                         val amt = amount.toIntOrNull() ?: return@KulhadButton
-                        viewModel.addPayment(saleId, amt, remark) {
+                        viewModel.addPayment(saleId, amt, remark, paymentMode) {
                             amount = ""
                             remark = ""
+                            paymentMode = "CASH"
                         }
                     }
                 )
@@ -222,6 +245,7 @@ fun PaymentEntryScreen(
                                         text = Money.formatRupees(p.amount),
                                         color = Success, fontSize = 16.sp, fontWeight = FontWeight.W500
                                     )
+                                    Text(text = p.paymentMode, color = PrimaryBlue, fontSize = 12.sp, fontWeight = FontWeight.W600)
                                     if (p.remark.isNotBlank()) {
                                         Text(text = p.remark, color = TextSecondary, fontSize = 12.sp)
                                     }
@@ -287,6 +311,12 @@ private fun PaymentDetailDialog(
                         fontSize   = 22.sp,
                         fontWeight = FontWeight.W600
                     )
+                }
+
+                // ── Mode ─────────────────────────────────────────────────────
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Mode:", color = TextSecondary, fontSize = 13.sp)
+                    Text(payment.paymentMode, color = PrimaryBlue, fontSize = 13.sp, fontWeight = FontWeight.W600)
                 }
 
                 // ── Date ─────────────────────────────────────────────────────

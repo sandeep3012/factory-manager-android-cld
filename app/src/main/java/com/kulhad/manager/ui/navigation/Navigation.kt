@@ -49,6 +49,11 @@ object Routes {
     const val PRODUCTION_REPORT = "production_report"
     const val SALES_REPORT = "sales_report"
 
+    // ── Customers ────────────────────────────────────────────────────────────────
+    const val CUSTOMER_LIST   = "customer_list"
+    const val ADD_CUSTOMER    = "add_customer"       // ?customerId={customerId}
+    const val CUSTOMER_DETAIL = "customer_detail"    // /{customerId}
+
     // ── Masters (Phase 1: Product Master) ──────────────────────────────────────
     /** Hub screen listing all master data sections. */
     const val MASTERS = "masters"
@@ -71,6 +76,10 @@ object Routes {
     fun attendanceDetail(workerId: Long, month: Long): String = "$ATTENDANCE_DETAIL/$workerId/$month"
     fun advanceEntry(workerId: Long? = null): String =
         if (workerId == null) ADVANCE_ENTRY else "$ADVANCE_ENTRY?workerId=$workerId"
+
+    fun addCustomer(customerId: Long? = null): String =
+        if (customerId == null) ADD_CUSTOMER else "$ADD_CUSTOMER?customerId=$customerId"
+    fun customerDetail(customerId: Long): String = "$CUSTOMER_DETAIL/$customerId"
 
     fun editProduction(entryId: Long): String = "$EDIT_PRODUCTION/$entryId"
     fun paymentEntry(saleId: Long): String = "$PAYMENT_ENTRY/$saleId"

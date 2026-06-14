@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.kulhad.manager.data.local.dao.CustomerDao
 import com.kulhad.manager.data.local.dao.AttendanceDao
 import com.kulhad.manager.data.local.dao.BackupDao
 import com.kulhad.manager.data.local.dao.ExpenseDao
@@ -22,6 +23,7 @@ import com.kulhad.manager.data.local.dao.UserDao
 import com.kulhad.manager.data.local.dao.WorkerAdvanceDao
 import com.kulhad.manager.data.local.dao.WorkerDao
 import com.kulhad.manager.data.local.dao.WorkerTypeHistoryDao
+import com.kulhad.manager.data.local.entity.CustomerEntity
 import com.kulhad.manager.data.local.entity.AttendanceEntity
 import com.kulhad.manager.data.local.entity.ExpenseEntity
 import com.kulhad.manager.data.local.entity.ExpenseTypeEntity
@@ -49,6 +51,7 @@ import com.kulhad.manager.data.util.PasswordHasher
         AttendanceEntity::class,
         ProductionEntryEntity::class,
         StockLedgerEntity::class,
+        CustomerEntity::class,
         SaleEntity::class,
         SaleItemEntity::class,
         PaymentEntity::class,
@@ -56,12 +59,13 @@ import com.kulhad.manager.data.util.PasswordHasher
         ExpenseEntity::class,
         WorkerAdvanceEntity::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = true  // writes app/schemas/…/<version>.json — commit to git
 )
 @TypeConverters(Converters::class)
 abstract class KulhadDatabase : RoomDatabase() {
 
+    abstract fun customerDao(): CustomerDao
     abstract fun userDao(): UserDao
     abstract fun workerDao(): WorkerDao
     abstract fun backupDao(): BackupDao

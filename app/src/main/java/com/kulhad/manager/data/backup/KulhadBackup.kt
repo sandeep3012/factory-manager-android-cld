@@ -1,6 +1,7 @@
 package com.kulhad.manager.data.backup
 
 import com.kulhad.manager.data.local.entity.AttendanceEntity
+import com.kulhad.manager.data.local.entity.CustomerEntity
 import com.kulhad.manager.data.local.entity.ExpenseEntity
 import com.kulhad.manager.data.local.entity.ExpenseTypeEntity
 import com.kulhad.manager.data.local.entity.PaymentEntity
@@ -43,7 +44,7 @@ data class KulhadBackup(
     /** Wall-clock epoch-millis when the backup was created. */
     val createdAt: Long = System.currentTimeMillis(),
 
-    // ── All 14 Room tables ────────────────────────────────────────────────────
+    // ── All 15 Room tables ────────────────────────────────────────────────────
     val users:              List<UserEntity>              = emptyList(),
     val workers:            List<WorkerEntity>            = emptyList(),
     val workerTypeHistory:  List<WorkerTypeHistoryEntity> = emptyList(),
@@ -52,6 +53,7 @@ data class KulhadBackup(
     val attendance:         List<AttendanceEntity>        = emptyList(),
     val productionEntries:  List<ProductionEntryEntity>   = emptyList(),
     val stockLedger:        List<StockLedgerEntity>       = emptyList(),
+    val customers:          List<CustomerEntity>          = emptyList(),
     val sales:              List<SaleEntity>              = emptyList(),
     val saleItems:          List<SaleItemEntity>          = emptyList(),
     val payments:           List<PaymentEntity>           = emptyList(),

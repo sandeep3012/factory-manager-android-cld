@@ -211,8 +211,86 @@ object Migrations {
     }
 
     /**
+     * v5 → v6: Introduce Customer Master.
+     *
+     * Changes:
+     * 1. CREATE `customers` table.
+     * 2. DELETE all existing test sales (early-stage app, no production data).
+     * 3. Copy-table pattern: drop `customer_name TEXT` from `sales`,
+     *    add `customer_id INTEGER NOT NULL` FK → customers.
+     * 4. Re-create sales indexes.
+     *
+     * Sales are deleted before recreating the table so the FK constraint
+     * (RESTRICT on customers) is never violated by orphaned rows.
+     */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // 1. Create customers table
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `customers` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `customer_code` TEXT NOT NULL DEFAULT '',
+                    `name` TEXT NOT NULL,
+                    `mobile_number` TEXT NOT NULL DEFAULT '',
+                    `address` TEXT NOT NULL DEFAULT '',
+                    `customer_type` TEXT NOT NULL DEFAULT 'Retail',
+                    `is_active` INTEGER NOT NULL DEFAULT 1,
+                    `audit_created_by` TEXT NOT NULL DEFAULT 'System',
+                    `audit_created_at` INTEGER NOT NULL DEFAULT 0,
+                    `audit_updated_by` TEXT,
+                    `audit_updated_at` INTEGER
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_customers_name` ON `customers` (`name`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_customers_is_active` ON `customers` (`is_active`)")
+
+            // 2. Delete existing test sale_items and payments first (FK CASCADE handles this
+            //    once sales are deleted, but being explicit avoids any ordering issues)
+            db.execSQL("DELETE FROM `sale_items`")
+            db.execSQL("DELETE FROM `payments`")
+            db.execSQL("DELETE FROM `sales`")
+
+            // 3. Recreate sales with customer_id replacing customer_name
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `sales_new` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `customer_id` INTEGER NOT NULL,
+                    `date` INTEGER NOT NULL,
+                    `total_amount` INTEGER NOT NULL,
+                    `created_by` INTEGER NOT NULL DEFAULT 0,
+                    `audit_created_by` TEXT NOT NULL DEFAULT 'System',
+                    `audit_created_at` INTEGER NOT NULL DEFAULT 0,
+                    `audit_updated_by` TEXT,
+                    `audit_updated_at` INTEGER,
+                    FOREIGN KEY(`customer_id`) REFERENCES `customers`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+                    FOREIGN KEY(`created_by`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE SET DEFAULT
+                )
+            """.trimIndent())
+            db.execSQL("DROP TABLE `sales`")
+            db.execSQL("ALTER TABLE `sales_new` RENAME TO `sales`")
+
+            // 4. Recreate sales indexes
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_sales_customer_id` ON `sales` (`customer_id`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_sales_created_by` ON `sales` (`created_by`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_sales_date` ON `sales` (`date`)")
+        }
+    }
+
+    /**
+     * v6 → v7: Add payment_mode to the `payments` table.
+     *
+     * Existing payments default to 'CASH' — the most common mode in practice and a safe
+     * sentinel that is visually distinguishable from blank/unknown.
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `payments` ADD COLUMN `payment_mode` TEXT NOT NULL DEFAULT 'CASH'")
+        }
+    }
+
+    /**
      * All migrations in ascending version order.
      * Room applies them sequentially — add new ones at the end of the array.
      */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 }

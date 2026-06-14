@@ -152,7 +152,14 @@ class BackupRepository @Inject constructor(
         if (safetyResult is BackupResult.Error) return safetyResult
 
         // Step 2-5 — transactional replace
+        // FK enforcement is disabled before the transaction because:
+        //  (a) PRAGMA foreign_keys cannot be changed inside a SQLite transaction, and
+        //  (b) old backup files (created before Customer Master was added) may have
+        //      sales with customer_id values that reference customers not yet inserted.
+        //  Data integrity is guaranteed by the controlled insert order below.
+        val db = database.openHelper.writableDatabase
         return try {
+            db.execSQL("PRAGMA foreign_keys = OFF")
             database.withTransaction {
 
                 // ── Delete: children → parents ────────────────────────────
@@ -165,6 +172,7 @@ class BackupRepository @Inject constructor(
                 backupDao.deleteAllPayments()
                 backupDao.deleteAllExpenses()
                 backupDao.deleteAllSales()
+                backupDao.deleteAllCustomers()
                 backupDao.deleteAllPieceRates()
                 backupDao.deleteAllWorkers()
                 backupDao.deleteAllProducts()
@@ -178,6 +186,7 @@ class BackupRepository @Inject constructor(
                 if (backup.workers.isNotEmpty())           backupDao.insertAllWorkers(backup.workers)
                 if (backup.pieceRates.isNotEmpty())        backupDao.insertAllPieceRates(backup.pieceRates)
                 if (backup.workerTypeHistory.isNotEmpty()) backupDao.insertAllWorkerTypeHistory(backup.workerTypeHistory)
+                if (backup.customers.isNotEmpty())         backupDao.insertAllCustomers(backup.customers)
                 if (backup.sales.isNotEmpty())             backupDao.insertAllSales(backup.sales)
                 if (backup.attendance.isNotEmpty())        backupDao.insertAllAttendance(backup.attendance)
                 if (backup.productionEntries.isNotEmpty()) backupDao.insertAllProductionEntries(backup.productionEntries)
@@ -190,6 +199,8 @@ class BackupRepository @Inject constructor(
             BackupResult.Success
         } catch (e: Exception) {
             BackupResult.Error("Restore failed: ${e.message}\n\nYour original data was not modified.")
+        } finally {
+            db.execSQL("PRAGMA foreign_keys = ON")
         }
     }
 
@@ -245,6 +256,7 @@ class BackupRepository @Inject constructor(
                 attendance         = backupDao.getAllAttendance(),
                 productionEntries  = backupDao.getAllProductionEntries(),
                 stockLedger        = backupDao.getAllStockLedger(),
+                customers          = backupDao.getAllCustomers(),
                 sales              = backupDao.getAllSales(),
                 saleItems          = backupDao.getAllSaleItems(),
                 payments           = backupDao.getAllPayments(),

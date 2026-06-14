@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,7 +49,8 @@ import com.kulhad.manager.ui.theme.TextSecondary
 @Composable
 fun MastersScreen(
     onBack: () -> Unit,
-    onProductMaster: () -> Unit
+    onProductMaster: () -> Unit,
+    onCustomerList: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize().background(BgDeep)) {
         KulhadTopBar(title = "Masters", onBack = onBack)
@@ -65,6 +67,14 @@ fun MastersScreen(
                         .padding(horizontal = 12.dp)
                 ) {
                     MasterItem(
+                        label       = "Customers",
+                        subtitle    = "View and manage customer records",
+                        icon        = Icons.Outlined.People,
+                        iconTint    = InfoBlue,
+                        showDivider = true,
+                        onClick     = onCustomerList
+                    )
+                    MasterItem(
                         label       = "Products / Kulhad Sizes",
                         subtitle    = "Add, edit and reorder kulhad sizes",
                         icon        = Icons.Outlined.Inventory,
@@ -72,7 +82,6 @@ fun MastersScreen(
                         showDivider = false,
                         onClick     = onProductMaster
                     )
-                    // Future items added here as additional MasterItem rows with showDivider = true
                 }
             }
         }

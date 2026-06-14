@@ -33,6 +33,9 @@ import com.kulhad.manager.ui.screens.reports.ProductionReportScreen
 import com.kulhad.manager.ui.screens.reports.ReportsScreen
 import com.kulhad.manager.ui.screens.reports.SalaryReportScreen
 import com.kulhad.manager.ui.screens.reports.SalesReportScreen
+import com.kulhad.manager.ui.screens.customers.AddCustomerScreen
+import com.kulhad.manager.ui.screens.customers.CustomerDetailScreen
+import com.kulhad.manager.ui.screens.customers.CustomerListScreen
 import com.kulhad.manager.ui.screens.sales.CreateSaleScreen
 import com.kulhad.manager.ui.screens.sales.PaymentEntryScreen
 import com.kulhad.manager.ui.screens.sales.PendingPaymentsScreen
@@ -370,11 +373,51 @@ class MainActivity : ComponentActivity() {
                                 SalesReportScreen(onBack = { navController.popBackStack() })
                             }
 
+                            // ── Customers ─────────────────────────────────────────────────────────
+                            composable(Routes.CUSTOMER_LIST) {
+                                CustomerListScreen(
+                                    onBack        = { navController.popBackStack() },
+                                    onAddCustomer = { navController.navigate(Routes.addCustomer()) },
+                                    onCustomerClick = { id -> navController.navigate(Routes.customerDetail(id)) }
+                                )
+                            }
+
+                            composable(
+                                route = "${Routes.ADD_CUSTOMER}?customerId={customerId}",
+                                arguments = listOf(
+                                    navArgument("customerId") {
+                                        type = NavType.LongType
+                                        defaultValue = -1L
+                                    }
+                                )
+                            ) { backStack ->
+                                val customerId = backStack.arguments?.getLong("customerId")
+                                    ?.takeIf { it != -1L }
+                                AddCustomerScreen(
+                                    editCustomerId = customerId,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(
+                                route = "${Routes.CUSTOMER_DETAIL}/{customerId}",
+                                arguments = listOf(
+                                    navArgument("customerId") { type = NavType.LongType }
+                                )
+                            ) {
+                                CustomerDetailScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onEdit = { id -> navController.navigate(Routes.addCustomer(id)) },
+                                    onSaleClick = { id -> navController.navigate(Routes.paymentEntry(id)) }
+                                )
+                            }
+
                             // ── Masters ───────────────────────────────────────────────────────────
                             composable(Routes.MASTERS) {
                                 MastersScreen(
                                     onBack          = { navController.popBackStack() },
-                                    onProductMaster = { navController.navigate(Routes.PRODUCT_MASTER) }
+                                    onProductMaster = { navController.navigate(Routes.PRODUCT_MASTER) },
+                                    onCustomerList  = { navController.navigate(Routes.CUSTOMER_LIST) }
                                 )
                             }
 
