@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.kulhad.manager.data.local.entity.AttendanceEntity
+import com.kulhad.manager.data.local.entity.CustomerEntity
 import com.kulhad.manager.data.local.entity.ExpenseEntity
 import com.kulhad.manager.data.local.entity.ExpenseTypeEntity
 import com.kulhad.manager.data.local.entity.PaymentEntity
@@ -71,6 +72,9 @@ interface BackupDao {
     @Query("SELECT * FROM stock_ledger")
     suspend fun getAllStockLedger(): List<StockLedgerEntity>
 
+    @Query("SELECT * FROM customers")
+    suspend fun getAllCustomers(): List<CustomerEntity>
+
     @Query("SELECT * FROM sales")
     suspend fun getAllSales(): List<SaleEntity>
 
@@ -102,6 +106,7 @@ interface BackupDao {
     @Query("DELETE FROM payments")              suspend fun deleteAllPayments()
     @Query("DELETE FROM expenses")              suspend fun deleteAllExpenses()
     @Query("DELETE FROM sales")                 suspend fun deleteAllSales()
+    @Query("DELETE FROM customers")             suspend fun deleteAllCustomers()
     @Query("DELETE FROM piece_rates")           suspend fun deleteAllPieceRates()
     @Query("DELETE FROM workers")               suspend fun deleteAllWorkers()
     @Query("DELETE FROM products")              suspend fun deleteAllProducts()
@@ -129,6 +134,9 @@ interface BackupDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllWorkerTypeHistory(rows: List<WorkerTypeHistoryEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllCustomers(rows: List<CustomerEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllSales(rows: List<SaleEntity>)

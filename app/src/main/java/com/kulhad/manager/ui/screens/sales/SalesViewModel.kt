@@ -147,11 +147,12 @@ class SalesViewModel @Inject constructor(
         saleId: Long,
         amount: Int,
         remark: String,
+        mode: String = "CASH",
         onDone: () -> Unit
     ) {
         viewModelScope.launch {
             try {
-                saleRepository.addPayment(saleId, amount, workingDateManager.currentEpochMilli(), remark)
+                saleRepository.addPayment(saleId, amount, workingDateManager.currentEpochMilli(), remark, mode)
                 onDone()
             } catch (e: OverpaymentException) {
                 _paymentError.value = buildString {

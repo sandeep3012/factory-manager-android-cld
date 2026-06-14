@@ -277,8 +277,20 @@ object Migrations {
     }
 
     /**
+     * v6 → v7: Add payment_mode to the `payments` table.
+     *
+     * Existing payments default to 'CASH' — the most common mode in practice and a safe
+     * sentinel that is visually distinguishable from blank/unknown.
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `payments` ADD COLUMN `payment_mode` TEXT NOT NULL DEFAULT 'CASH'")
+        }
+    }
+
+    /**
      * All migrations in ascending version order.
      * Room applies them sequentially — add new ones at the end of the array.
      */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 }

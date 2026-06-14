@@ -134,7 +134,7 @@ class SaleRepository @Inject constructor(
      * Pending is always derived — never stored — consistent with the project's rule that
      * payment state = total - SUM(payments.amount).
      */
-    suspend fun addPayment(saleId: Long, amount: Int, date: Long, remark: String) {
+    suspend fun addPayment(saleId: Long, amount: Int, date: Long, remark: String, mode: String = "CASH") {
         require(amount > 0) { "Payment amount must be positive" }
         database.withTransaction {
             val sale = saleDao.findById(saleId)
@@ -158,6 +158,7 @@ class SaleRepository @Inject constructor(
                     amount         = amount,
                     date           = DateUtils.startOfDay(date),
                     remark         = remark,
+                    paymentMode    = mode,
                     auditCreatedBy = audit.createdBy,
                     auditCreatedAt = audit.createdAt
                 )
@@ -214,12 +215,13 @@ class SaleRepository @Inject constructor(
                 },
                 payments = payments.map { p ->
                     Payment(
-                        id     = p.id,
-                        saleId = p.saleId,
-                        amount = p.amount,
-                        date   = p.date,
-                        remark = p.remark,
-                        audit  = AuditInfo(
+                        id          = p.id,
+                        saleId      = p.saleId,
+                        amount      = p.amount,
+                        date        = p.date,
+                        remark      = p.remark,
+                        paymentMode = p.paymentMode,
+                        audit       = AuditInfo(
                             createdBy = p.auditCreatedBy,
                             createdAt = p.auditCreatedAt,
                             updatedBy = p.auditUpdatedBy,

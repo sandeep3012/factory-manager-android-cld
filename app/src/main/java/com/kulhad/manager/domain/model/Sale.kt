@@ -65,6 +65,7 @@ data class Payment(
     val amount: Int,
     val date: Long,
     val remark: String,
+    val paymentMode: String,
     val audit: AuditInfo
 )
 

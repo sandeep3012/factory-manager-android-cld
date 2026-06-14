@@ -353,6 +353,7 @@ data class PaymentEntity(
     val amount: Int,
     val date: Long,
     @ColumnInfo(defaultValue = "") val remark: String = "",
+    @ColumnInfo(name = "payment_mode", defaultValue = "'CASH'") val paymentMode: String = "CASH",
     // ── Audit columns ─────────────────────────────────────────────────────────
     @ColumnInfo(name = "audit_created_by", defaultValue = "'System'") val auditCreatedBy: String = "System",
     @ColumnInfo(name = "audit_created_at", defaultValue = "0") val auditCreatedAt: Long = 0L,
