@@ -411,6 +411,9 @@ class WorkerRepository @Inject constructor(
     suspend fun advanceTotalInRange(workerId: Long, from: Long, to: Long): Int =
         advanceDao.totalForWorkerInRange(workerId, from, to)
 
+    fun observeAdvancesForWorkerInRange(workerId: Long, from: Long, to: Long): Flow<List<WorkerAdvanceRecord>> =
+        advanceDao.observeForWorkerInRange(workerId, from, to).map { list -> list.map { it.toDomain() } }
+
     suspend fun firstActiveWorkerOrNull(): Worker? =
         workerDao.observeActive().first().firstOrNull()?.toDomain()
 

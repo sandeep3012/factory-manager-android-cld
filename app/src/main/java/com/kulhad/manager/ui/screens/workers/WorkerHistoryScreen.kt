@@ -161,6 +161,7 @@ fun WorkerHistoryScreen(
     onBack: () -> Unit,
     onViewProductionDetail: (Long) -> Unit = {},
     onViewAttendanceDetail: (Long, Long) -> Unit = { _, _ -> },
+    onViewAdvanceHistory: (Long) -> Unit = {},
     viewModel: WorkerHistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -219,7 +220,12 @@ fun WorkerHistoryScreen(
             }
 
             // ── Advance summary ───────────────────────────────────────────
-            item { AdvanceSummaryCard(state) }
+            item {
+                AdvanceSummaryCard(
+                    state = state,
+                    onViewDetail = { onViewAdvanceHistory(workerId) }
+                )
+            }
 
             // ── Recent activity ───────────────────────────────────────────
             item { RecentActivityCard(state) }
@@ -365,7 +371,7 @@ private fun SalarySummaryCard(state: WorkerHistoryState) {
 }
 
 @Composable
-private fun AdvanceSummaryCard(state: WorkerHistoryState) {
+private fun AdvanceSummaryCard(state: WorkerHistoryState, onViewDetail: () -> Unit = {}) {
     HistoryCard(title = "Advance Summary", icon = Icons.Outlined.AttachMoney) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SummaryRow(
@@ -382,6 +388,15 @@ private fun AdvanceSummaryCard(state: WorkerHistoryState) {
                 Text("No advances recorded", color = TextTertiary, fontSize = 13.sp)
             }
         }
+        Text(
+            text     = "View month-wise advances →",
+            color    = PrimaryBlue,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.W500,
+            modifier = Modifier
+                .clickable { onViewDetail() }
+                .padding(top = 4.dp)
+        )
     }
 }
 

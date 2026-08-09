@@ -52,6 +52,7 @@ import com.kulhad.manager.ui.screens.workers.AddWorkerScreen
 import com.kulhad.manager.ui.screens.workers.AdvanceEntryScreen
 import com.kulhad.manager.ui.screens.workers.AttendanceHistoryScreen
 import com.kulhad.manager.ui.screens.workers.AttendanceScreen
+import com.kulhad.manager.ui.screens.workers.WorkerAdvanceHistoryScreen
 import com.kulhad.manager.ui.screens.workers.WorkerAttendanceDetailScreen
 import com.kulhad.manager.ui.screens.workers.WorkerHistoryScreen
 import com.kulhad.manager.ui.screens.workers.WorkerProductionDetailScreen
@@ -182,6 +183,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onViewAttendanceDetail = { id, month ->
                                         navController.navigate(Routes.attendanceDetail(id, month))
+                                    },
+                                    onViewAdvanceHistory = { id ->
+                                        navController.navigate(Routes.workerAdvanceHistory(id))
                                     }
                                 )
                             }
@@ -193,6 +197,17 @@ class MainActivity : ComponentActivity() {
                                 )
                             ) {
                                 WorkerProductionDetailScreen(
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(
+                                route = "${Routes.WORKER_ADVANCE_HISTORY}/{workerId}",
+                                arguments = listOf(
+                                    navArgument("workerId") { type = NavType.LongType }
+                                )
+                            ) {
+                                WorkerAdvanceHistoryScreen(
                                     onBack = { navController.popBackStack() }
                                 )
                             }

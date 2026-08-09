@@ -16,6 +16,12 @@ interface WorkerAdvanceDao {
     @Query("SELECT * FROM worker_advances WHERE worker_id = :workerId ORDER BY date DESC, id DESC")
     fun observeForWorker(workerId: Long): Flow<List<WorkerAdvanceEntity>>
 
+    @Query(
+        "SELECT * FROM worker_advances WHERE worker_id = :workerId AND date BETWEEN :from AND :to " +
+            "ORDER BY date DESC, id DESC"
+    )
+    fun observeForWorkerInRange(workerId: Long, from: Long, to: Long): Flow<List<WorkerAdvanceEntity>>
+
     @Query("SELECT * FROM worker_advances ORDER BY date DESC, id DESC")
     fun observeAll(): Flow<List<WorkerAdvanceEntity>>
 
