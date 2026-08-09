@@ -139,18 +139,18 @@ class SaleRepository @Inject constructor(
         database.withTransaction {
             val sale = saleDao.findById(saleId)
                 ?: error("Sale $saleId not found")
-            val alreadyPaid = paymentDao.paidForSale(saleId)
-            val pending     = (sale.totalAmount - alreadyPaid).coerceAtLeast(0)
-
-            if (amount > pending) {
-                throw OverpaymentException(
-                    total     = sale.totalAmount,
-                    paid      = alreadyPaid,
-                    pending   = pending,
-                    attempted = amount
-                )
-            }
-            // ── Validation passed — nothing written yet ──────────────────────
+            // ── Overpayment validation temporarily disabled ──────────────────
+            // val alreadyPaid = paymentDao.paidForSale(saleId)
+            // val pending     = (sale.totalAmount - alreadyPaid).coerceAtLeast(0)
+            //
+            // if (amount > pending) {
+            //     throw OverpaymentException(
+            //         total     = sale.totalAmount,
+            //         paid      = alreadyPaid,
+            //         pending   = pending,
+            //         attempted = amount
+            //     )
+            // }
             val audit = AuditUtils.createAudit(userSessionManager.currentUser.value)
             paymentDao.insert(
                 PaymentEntity(
