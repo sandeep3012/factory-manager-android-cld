@@ -179,6 +179,9 @@ class MainActivity : ComponentActivity() {
                                     onBack = { navController.popBackStack() },
                                     onViewProductionDetail = { id ->
                                         navController.navigate(Routes.workerProductionDetail(id))
+                                    },
+                                    onViewAttendanceDetail = { id, month ->
+                                        navController.navigate(Routes.attendanceDetail(id, month))
                                     }
                                 )
                             }

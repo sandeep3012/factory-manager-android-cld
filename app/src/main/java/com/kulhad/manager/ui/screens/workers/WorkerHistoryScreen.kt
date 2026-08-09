@@ -160,6 +160,7 @@ fun WorkerHistoryScreen(
     workerId: Long,
     onBack: () -> Unit,
     onViewProductionDetail: (Long) -> Unit = {},
+    onViewAttendanceDetail: (Long, Long) -> Unit = { _, _ -> },
     viewModel: WorkerHistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -193,7 +194,14 @@ fun WorkerHistoryScreen(
             item { WorkerHeaderCard(state) }
 
             // ── Attendance summary ────────────────────────────────────────
-            item { AttendanceSummaryCard(state) }
+            item {
+                AttendanceSummaryCard(
+                    state = state,
+                    onViewDetail = {
+                        onViewAttendanceDetail(workerId, DateUtils.startOfMonth(System.currentTimeMillis()))
+                    }
+                )
+            }
 
             // ── Production summary (PIECE workers) ────────────────────────
             if (worker.currentType == WorkerType.PIECE) {
@@ -273,7 +281,7 @@ private fun WorkerHeaderCard(state: WorkerHistoryState) {
 }
 
 @Composable
-private fun AttendanceSummaryCard(state: WorkerHistoryState) {
+private fun AttendanceSummaryCard(state: WorkerHistoryState, onViewDetail: () -> Unit = {}) {
     val total = state.totalPresent + state.totalAbsent
     val pct = if (total > 0) (state.totalPresent * 100) / total else 0
 
@@ -287,6 +295,15 @@ private fun AttendanceSummaryCard(state: WorkerHistoryState) {
             KpiItem(label = "Total Days", value = total.toString(), color = TextPrimary)
             KpiItem(label = "Rate", value = "$pct%", color = InfoBlue)
         }
+        Text(
+            text     = "View month-wise attendance →",
+            color    = PrimaryBlue,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.W500,
+            modifier = Modifier
+                .clickable { onViewDetail() }
+                .padding(top = 4.dp)
+        )
     }
 }
 
