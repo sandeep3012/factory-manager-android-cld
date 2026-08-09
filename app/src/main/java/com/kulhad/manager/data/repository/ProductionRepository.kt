@@ -330,6 +330,9 @@ class ProductionRepository @Inject constructor(
         return observeEntriesInRange(start, end)
     }
 
+    fun observeEntriesForWorkerInRange(workerId: Long, from: Long, to: Long): Flow<List<ProductionEntry>> =
+        combineEntries(productionDao.observeForWorkerInRange(workerId, from, to))
+
     private fun combineEntries(
         source: Flow<List<ProductionEntryEntity>>
     ): Flow<List<ProductionEntry>> = combine(

@@ -54,6 +54,7 @@ import com.kulhad.manager.ui.screens.workers.AttendanceHistoryScreen
 import com.kulhad.manager.ui.screens.workers.AttendanceScreen
 import com.kulhad.manager.ui.screens.workers.WorkerAttendanceDetailScreen
 import com.kulhad.manager.ui.screens.workers.WorkerHistoryScreen
+import com.kulhad.manager.ui.screens.workers.WorkerProductionDetailScreen
 import com.kulhad.manager.ui.screens.workers.WorkerListScreen
 import com.kulhad.manager.ui.screens.workers.WorkerTypeHistoryScreen
 import com.kulhad.manager.ui.screens.workers.WorkersArchiveScreen
@@ -175,6 +176,20 @@ class MainActivity : ComponentActivity() {
                                 val workerId = backStack.arguments!!.getLong("workerId")
                                 WorkerHistoryScreen(
                                     workerId = workerId,
+                                    onBack = { navController.popBackStack() },
+                                    onViewProductionDetail = { id ->
+                                        navController.navigate(Routes.workerProductionDetail(id))
+                                    }
+                                )
+                            }
+
+                            composable(
+                                route = "${Routes.WORKER_PRODUCTION_DETAIL}/{workerId}",
+                                arguments = listOf(
+                                    navArgument("workerId") { type = NavType.LongType }
+                                )
+                            ) {
+                                WorkerProductionDetailScreen(
                                     onBack = { navController.popBackStack() }
                                 )
                             }

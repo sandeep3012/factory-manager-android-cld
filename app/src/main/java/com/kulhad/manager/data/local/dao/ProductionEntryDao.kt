@@ -129,6 +129,13 @@ interface ProductionEntryDao {
     )
     suspend fun totalEarningsForWorker(workerId: Long): Double
 
+    /** All entries for a worker within a date range, newest first. */
+    @Query(
+        "SELECT * FROM production_entries WHERE worker_id = :workerId " +
+            "AND date BETWEEN :from AND :to ORDER BY date DESC, id DESC"
+    )
+    fun observeForWorkerInRange(workerId: Long, from: Long, to: Long): Flow<List<ProductionEntryEntity>>
+
     /** Most recent [limit] production entries for a worker, newest first. */
     @Query(
         "SELECT * FROM production_entries WHERE worker_id = :workerId " +

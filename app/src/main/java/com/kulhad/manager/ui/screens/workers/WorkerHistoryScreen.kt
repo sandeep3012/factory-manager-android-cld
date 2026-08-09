@@ -1,6 +1,7 @@
 package com.kulhad.manager.ui.screens.workers
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -158,6 +159,7 @@ class WorkerHistoryViewModel @Inject constructor(
 fun WorkerHistoryScreen(
     workerId: Long,
     onBack: () -> Unit,
+    onViewProductionDetail: (Long) -> Unit = {},
     viewModel: WorkerHistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -195,7 +197,12 @@ fun WorkerHistoryScreen(
 
             // ── Production summary (PIECE workers) ────────────────────────
             if (worker.currentType == WorkerType.PIECE) {
-                item { ProductionSummaryCard(state) }
+                item {
+                    ProductionSummaryCard(
+                        state = state,
+                        onViewDetail = { onViewProductionDetail(workerId) }
+                    )
+                }
             }
 
             // ── Salary summary (SALARY workers) ───────────────────────────
@@ -284,7 +291,7 @@ private fun AttendanceSummaryCard(state: WorkerHistoryState) {
 }
 
 @Composable
-private fun ProductionSummaryCard(state: WorkerHistoryState) {
+private fun ProductionSummaryCard(state: WorkerHistoryState, onViewDetail: () -> Unit = {}) {
     HistoryCard(title = "Production Summary", icon = Icons.Outlined.Construction) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -299,6 +306,15 @@ private fun ProductionSummaryCard(state: WorkerHistoryState) {
                 color = PrimaryBlue
             )
         }
+        Text(
+            text     = "View month-wise production →",
+            color    = PrimaryBlue,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.W500,
+            modifier = Modifier
+                .clickable { onViewDetail() }
+                .padding(top = 4.dp)
+        )
     }
 }
 
