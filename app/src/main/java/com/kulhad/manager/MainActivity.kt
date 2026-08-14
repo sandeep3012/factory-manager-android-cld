@@ -186,6 +186,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onViewAdvanceHistory = { id ->
                                         navController.navigate(Routes.workerAdvanceHistory(id))
+                                    },
+                                    onViewTypeHistory = { id ->
+                                        navController.navigate(Routes.workerTypeHistory(id))
                                     }
                                 )
                             }

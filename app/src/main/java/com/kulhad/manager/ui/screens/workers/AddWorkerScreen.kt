@@ -12,9 +12,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,11 +44,15 @@ import com.kulhad.manager.ui.components.KulhadTopBar
 import com.kulhad.manager.ui.components.SegmentedControl
 import com.kulhad.manager.ui.theme.BgDeep
 import com.kulhad.manager.ui.theme.OverlayWhite07
+import com.kulhad.manager.ui.theme.PrimaryBlue
 import com.kulhad.manager.ui.theme.Success
 import com.kulhad.manager.ui.theme.SurfaceCard
 import com.kulhad.manager.ui.theme.TextSecondary
 import com.kulhad.manager.ui.theme.TextTertiary
+import java.time.Instant
+import java.time.ZoneOffset
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddWorkerScreen(
     workerId: Long?,
@@ -55,6 +65,7 @@ fun AddWorkerScreen(
     var phone    by remember { mutableStateOf("") }
     var address  by remember { mutableStateOf("") }
     var joining  by remember { mutableStateOf(DateUtils.todayStart()) }
+    var showJoiningPicker by remember { mutableStateOf(false) }
     var typeStr  by remember { mutableStateOf("Piece worker") }
     var dailyRate by remember { mutableStateOf("") }
     // isActive only relevant in edit mode; new workers are always active.
@@ -103,7 +114,7 @@ fun AddWorkerScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(SurfaceCard)
-                        .clickable { /* date picker dialog could be added later */ }
+                        .clickable { showJoiningPicker = true }
                         .padding(12.dp)
                 ) {
                     Column {
@@ -198,4 +209,52 @@ fun AddWorkerScreen(
             }
         }
     }
+
+    // ── Joining date picker ───────────────────────────────────────────────────
+    if (showJoiningPicker) {
+        val todayUtc = DateUtils.todayStart().toUtcDateMillis()
+
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = joining.toUtcDateMillis(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    utcTimeMillis <= todayUtc
+            }
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showJoiningPicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let { joining = it.fromUtcDateMillis() }
+                        showJoiningPicker = false
+                    }
+                ) {
+                    Text("OK", color = PrimaryBlue)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showJoiningPicker = false }) {
+                    Text("Cancel", color = TextSecondary)
+                }
+            }
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
+}
+
+// ── Local-day / UTC-midnight conversion helpers ────────────────────────────────
+// Material 3's DatePicker always works in UTC-midnight millis, while [joining] is
+// stored as start-of-day millis in the device's default timezone (per DateUtils
+// convention). These convert between the two without shifting the calendar date.
+
+private fun Long.toUtcDateMillis(): Long =
+    Instant.ofEpochMilli(this).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+private fun Long.fromUtcDateMillis(): Long {
+    val localDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
+    return DateUtils.startOfDay(localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
 }

@@ -162,6 +162,7 @@ fun WorkerHistoryScreen(
     onViewProductionDetail: (Long) -> Unit = {},
     onViewAttendanceDetail: (Long, Long) -> Unit = { _, _ -> },
     onViewAdvanceHistory: (Long) -> Unit = {},
+    onViewTypeHistory: (Long) -> Unit = {},
     viewModel: WorkerHistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -192,7 +193,12 @@ fun WorkerHistoryScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // ── Header card ───────────────────────────────────────────────
-            item { WorkerHeaderCard(state) }
+            item {
+                WorkerHeaderCard(
+                    state = state,
+                    onViewTypeHistory = { onViewTypeHistory(workerId) }
+                )
+            }
 
             // ── Attendance summary ────────────────────────────────────────
             item {
@@ -236,7 +242,7 @@ fun WorkerHistoryScreen(
 // ── Cards ─────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun WorkerHeaderCard(state: WorkerHistoryState) {
+private fun WorkerHeaderCard(state: WorkerHistoryState, onViewTypeHistory: () -> Unit = {}) {
     val worker = state.worker ?: return
     val isPiece = worker.currentType == WorkerType.PIECE
 
@@ -280,6 +286,15 @@ private fun WorkerHeaderCard(state: WorkerHistoryState) {
                     text = "Joined ${DateUtils.formatDay(worker.joiningDate)}",
                     color = TextTertiary,
                     fontSize = 12.sp
+                )
+                Text(
+                    text     = "View type/rate history →",
+                    color    = PrimaryBlue,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.W500,
+                    modifier = Modifier
+                        .clickable { onViewTypeHistory() }
+                        .padding(top = 4.dp)
                 )
             }
         }

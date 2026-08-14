@@ -9,6 +9,8 @@ import com.kulhad.manager.data.local.dao.ProductionEntryDao
 import com.kulhad.manager.data.local.dao.SaleDao
 import com.kulhad.manager.data.local.dao.WorkerAdvanceDao
 import com.kulhad.manager.data.local.dao.WorkerDao
+import com.kulhad.manager.data.local.dao.WorkerTypeHistoryDao
+import com.kulhad.manager.data.local.entity.WorkerEntity
 import com.kulhad.manager.data.local.entity.WorkerType
 import com.kulhad.manager.data.util.DateUtils
 import com.kulhad.manager.domain.model.DailyProduction
@@ -40,8 +42,31 @@ class ReportRepository @Inject constructor(
     private val attendanceDao: AttendanceDao,
     private val advanceDao: WorkerAdvanceDao,
     private val paymentDao: PaymentDao,
-    private val productDao: ProductDao
+    private val productDao: ProductDao,
+    private val typeHistoryDao: WorkerTypeHistoryDao
 ) {
+
+    /**
+     * Resolves the worker type + daily rate that were actually in effect on [at],
+     * using [WorkerTypeHistoryDao.typeAt] rather than the live [WorkerEntity.currentType] /
+     * [WorkerEntity.dailyRate] cache — so date-bounded reports stay correct after a worker's
+     * type/rate is later changed. Falls back to the cache if no history row exists
+     * (should not normally happen — every worker gets one on creation).
+     *
+     * Note: this resolves a single snapshot for the whole period (as of [at]). A worker
+     * who changes type *mid-period* is not split across sub-periods — a known, accepted
+     * simplification.
+     */
+    private suspend fun resolveTypeAndRate(worker: WorkerEntity, at: Long): Pair<WorkerType, Int> {
+        val history = typeHistoryDao.typeAt(worker.id, at)
+        return if (history != null) {
+            val type = runCatching { WorkerType.valueOf(history.workerType) }.getOrDefault(WorkerType.PIECE)
+            type to history.dailyRate
+        } else {
+            val type = runCatching { WorkerType.valueOf(worker.currentType) }.getOrDefault(WorkerType.PIECE)
+            type to worker.dailyRate
+        }
+    }
 
     /**
      * Gross labour cost for a date range, split by worker type.
@@ -50,7 +75,7 @@ class ReportRepository @Inject constructor(
      *   → productionDao.earningsForWorkerInRange(workerId, from, to)
      *
      * SALARY workers: earnings come from attendance only.
-     *   → attendanceDao.countPresentInRange(workerId, from, to) × worker.dailyRate
+     *   → attendanceDao.countPresentInRange(workerId, from, to) × daily rate effective on [to]
      *   Production entries submitted by salary workers are intentionally ignored here —
      *   they count for stock and analytics but must not contribute to labour cost.
      *
@@ -62,13 +87,13 @@ class ReportRepository @Inject constructor(
         var piece = 0
         var salary = 0
         workers.forEach { w ->
-            val type = runCatching { WorkerType.valueOf(w.currentType) }.getOrDefault(WorkerType.PIECE)
+            val (type, dailyRate) = resolveTypeAndRate(w, to)
             if (type == WorkerType.PIECE) {
                 piece += productionDao.earningsForWorkerInRange(w.id, from, to).toInt()
             } else {
                 // SALARY worker — use attendance × daily rate, NOT production earnings
                 val daysPresent = attendanceDao.countPresentInRange(w.id, from, to)
-                salary += daysPresent * w.dailyRate
+                salary += daysPresent * dailyRate
             }
         }
         return LabourCostBreakdown(
@@ -145,14 +170,14 @@ class ReportRepository @Inject constructor(
 
         val workers = workerDao.observeAll().first()
         val rows = workers.map { w ->
-            val type = runCatching { WorkerType.valueOf(w.currentType) }.getOrDefault(WorkerType.PIECE)
+            val (type, dailyRate) = resolveTypeAndRate(w, to)
             val advances = advanceDao.totalForWorkerInRange(w.id, from, to)
 
             val pieceQty = productionDao.netQtyForWorkerInRange(w.id, from, to)
             val pieceEarnings = productionDao.earningsForWorkerInRange(w.id, from, to)
 
             val daysPresent = attendanceDao.countPresentInRange(w.id, from, to)
-            val salaryEarnings = daysPresent * w.dailyRate
+            val salaryEarnings = daysPresent * dailyRate
 
             val gross = if (type == WorkerType.PIECE) pieceEarnings.toInt() else salaryEarnings
             val net = gross - advances
@@ -164,7 +189,7 @@ class ReportRepository @Inject constructor(
                 pieceQty = pieceQty,
                 pieceEarnings = pieceEarnings,
                 daysPresent = daysPresent,
-                dailyRate = w.dailyRate,
+                dailyRate = dailyRate,
                 salaryEarnings = salaryEarnings,
                 advances = advances,
                 grossEarnings = gross,
